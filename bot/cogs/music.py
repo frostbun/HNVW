@@ -85,8 +85,8 @@ class MusicCog(Cog):
             return
         await self.voice_client[ctx.guild.id].send_queue_embed(page)
 
-    @command(brief="Move song <from> to (<to>)", aliases=["mv"])
-    async def move(self, ctx, fr:int, to:int=1):
+    @command(brief="Move song (<from>) to (<to>)", aliases=["mv"])
+    async def move(self, ctx, fr:int=0, to:int=1):
         if not await self.is_playing(ctx):
             return
         await self.voice_client[ctx.guild.id].move(fr, to)

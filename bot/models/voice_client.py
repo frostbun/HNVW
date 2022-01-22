@@ -191,21 +191,18 @@ class VoiceClient:
             await self.ctx.send(embed=self.playing.get_embed("Skipped"))
             self.voice_client.stop()
         else:
-            index -= 1
-            if index in range(len(self.queue)):
-                self.ctx.send(embed=self.queue.pop(index).get_embed("Skipped"))
-        await self.send_np_embed()
+            index = (index-1) % len(self.queue)
+            await self.ctx.send(embed=self.queue.pop(index).get_embed("Skipped"))
+            await self.send_np_embed()
 
     async def shuffle(self):
         rand(self.queue)
         await self.send_queue_embed()
 
     async def move(self, fr, to):
-        fr -= 1
-        to -= 1
-        rg = range(len(self.queue))
-        if fr in rg and to in rg:
-            self.queue.insert(to, self.queue.pop(fr))
+        fr = (fr-1) % len(self.queue)
+        to = (to-1) % len(self.queue)
+        self.queue.insert(to, self.queue.pop(fr))
         await self.send_queue_embed()
 
     async def stop(self):
