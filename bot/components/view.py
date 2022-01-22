@@ -11,10 +11,11 @@ class View(ui.View):
         self.on_t_o = on_timeout
 
     async def on_timeout(self):
-        [ await on_t_o() for on_t_o in self.on_t_o ]
+        for on_t_o in self.on_t_o:
+            await on_t_o()
 
 class Button(ui.Button):
-    def __init__(self, label, style, disabled=False, callback=[], check=[], **params):
+    def __init__(self, label, style, disabled=False, callback=[], check=[], params={}):
         super().__init__(
             label = label,
             style = style,
@@ -25,14 +26,17 @@ class Button(ui.Button):
         self.params = params
 
     async def callback(self, i):
-        if all(await check(i) for check in self.check):
-            await i.message.delete()
-            if "ctx" in self.params:
-                self.params["ctx"].author = i.user
-            [ await cb(**self.params) for cb in self.callback ]
+        for check in self.check:
+            if not await check():
+                return
+        await i.message.delete()
+        if "ctx" in self.params:
+            self.params["ctx"].author = i.user
+        for cb in self.cb:
+            await cb(**self.params)
 
 class Select(ui.Select):
-    def __init__(self, placeholder, options, callback=[], check=[], default_param_name="index", **params):
+    def __init__(self, placeholder, options, callback=[], check=[], default_param_name="index", default_param_type=int, params={}):
         super().__init__(
             placeholder = placeholder,
             options = options,
@@ -40,12 +44,16 @@ class Select(ui.Select):
         self.cb = callback
         self.check = check
         self.default_param_name = default_param_name
+        self.default_param_type = default_param_type
         self.params = params
 
     async def callback(self, i):
-        if all(await check(i) for check in self.check):
-            await i.message.delete()
-            if "ctx" in self.params:
-                self.params["ctx"].author = i.user
-            self.params[self.default_param_name] = int(self.values[0])
-            [ await cb(**self.params) for cb in self.callback ]
+        for check in self.check:
+            if not await check():
+                return
+        await i.message.delete()
+        if "ctx" in self.params:
+            self.params["ctx"].author = i.user
+        self.params[self.default_param_name] = self.default_param_type(self.values[0])
+        for cb in self.cb:
+            await cb(**self.params)

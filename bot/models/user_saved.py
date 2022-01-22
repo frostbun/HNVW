@@ -148,7 +148,8 @@ class UserSaved:
                     callback = [ self.bot.get_command("play") ],
                     check = [ self.check_author ],
                     default_param_name = "url",
-                    ctx = self.ctx
+                    default_param_type = str,
+                    params = {"ctx": self.ctx},
                 ),
                 Button(
                     label = "Cancel",
@@ -161,7 +162,7 @@ class UserSaved:
                     disabled = page<=1,
                     callback = [ self.send_playlist_embed ],
                     check = [ self.check_author ],
-                    page = page-1,
+                    params = {"page": page-1},
                 ),
                 Button(
                     label = "Next",
@@ -169,7 +170,7 @@ class UserSaved:
                     disabled = page>=(len(self.saved)+9)//10,
                     callback = [ self.send_playlist_embed ],
                     check = [ self.check_author ],
-                    page = page+1,
+                    params = {"page": page+1},
                 ),
             )
         )
@@ -206,7 +207,7 @@ class UserSaved:
                     disabled = page<=1,
                     callback = [ self.send_remove_playlist_embed ],
                     check = [ self.check_author ],
-                    page = page-1,
+                    params = {"page": page-1},
                 ),
                 Button(
                     label = "Next",
@@ -214,7 +215,7 @@ class UserSaved:
                     disabled = page>=(len(self.saved)+9)//10,
                     callback = [ self.send_remove_playlist_embed ],
                     check = [ self.check_author ],
-                    page = page+1,
+                    params = {"page": page+1},
                 ),
             )
         )

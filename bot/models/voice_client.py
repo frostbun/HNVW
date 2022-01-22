@@ -72,7 +72,7 @@ class VoiceClient:
                     label = "Stop", 
                     style = ButtonStyle.red,
                     callback = [ self.bot.get_command("stop") ],
-                    ctx = self.ctx,
+                    params = {"ctx": self.ctx},
                 ),
                 Button(
                     label = "Resume" if self.voice_client.is_paused() else "Pause",
@@ -97,7 +97,7 @@ class VoiceClient:
             ),
         )
 
-    async def send_queue_embed(self, page):
+    async def send_queue_embed(self, page=1):
         # delete last queue message
         try:
             await self.last_queue_message.delete()
@@ -119,7 +119,7 @@ class VoiceClient:
                     style = ButtonStyle.gray if page<=1 else ButtonStyle.green,
                     disabled = page<=1,
                     callback = [ self.send_queue_embed ],
-                    page = page-1,
+                    params = {"page": page-1},
                 ),
                 Button(
                     label = "Shuffle",
@@ -131,7 +131,7 @@ class VoiceClient:
                     style = ButtonStyle.gray if page>=(len(self.queue)+9)//10 else ButtonStyle.green,
                     disabled = page>=(len(self.queue)+9)//10,
                     callback = [ self.send_queue_embed ],
-                    page = page+1,
+                    params = {"page": page+1},
                 ),
             ),
         )
@@ -155,8 +155,10 @@ class VoiceClient:
                             value = song.initial_url,
                         ) for song in self.last_search
                     ],
-                    callback = [ self.enqueue ],
+                    callback = [ self.bot.get_command("play") ],
                     default_param_name = "url",
+                    default_param_type = str,
+                    params = {"ctx": self.ctx},
                 ),
                 Button(
                     label = "Cancel",
