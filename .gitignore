@@ -1,0 +1,11 @@
+*.pyc
+
+.replit
+poetry.lock
+pyproject.toml
+
+db.sqlite3
+
+.vscode/
+test/
+.upm/
