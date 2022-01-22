@@ -28,6 +28,7 @@ class UserSaved:
         self.bot = bot
         self.ctx = ctx
         self.id = id
+        self.size = self.fetch_size()
         self.last_active = time()
 
     # check =======================================================================================
@@ -48,10 +49,10 @@ class UserSaved:
         return True
 
     # database ====================================================================================
-    async def fetch_one(self, id):
+    def fetch_one(self, id):
         with connect(DATABASE) as conn:
             return Song(
-                conn.cursor().execute(
+                *conn.cursor().execute(
                     f"""SELECT title, duration, thumbnail, url 
                         FROM {TABLE} 
                         WHERE user_id=? 
@@ -61,7 +62,17 @@ class UserSaved:
                 ).fetchone()
             )
 
-    async def fetch(self, page):
+    def fetch_size(self):
+        with connect(DATABASE) as conn:
+            return conn.cursor().execute(
+                f"""SELECT COUNT(id) 
+                    FROM {TABLE} 
+                    WHERE user_id=? 
+                """,
+                (self.id, )
+            ).fetchone()[0]
+
+    def fetch(self, page):
         with connect(DATABASE) as conn:
             return [
                 (data[0], Song(*data[1:])) for data in conn.cursor().execute(
@@ -93,7 +104,7 @@ class UserSaved:
         await self.ctx.send(embed=self.last_search.get_embed("Your song was saved"))
 
     async def remove(self, id):
-        song = await self.fetch_one(id)
+        song = self.fetch_one(id)
         with connect(DATABASE) as conn:
             conn.execute(f"DELETE FROM {TABLE} WHERE id=?", (id, ))
             conn.commit()
@@ -149,7 +160,7 @@ class UserSaved:
                     check = [ self.check_author ],
                     default_param_name = "url",
                     default_param_type = str,
-                    params = {"ctx": self.ctx},
+                    params = {"context": self.ctx},
                 ),
                 Button(
                     label = "Cancel",
@@ -166,8 +177,8 @@ class UserSaved:
                 ),
                 Button(
                     label = "Next",
-                    style = ButtonStyle.gray if page>=(len(self.saved)+9)//10 else ButtonStyle.green,
-                    disabled = page>=(len(self.saved)+9)//10,
+                    style = ButtonStyle.gray if page>=(self.size+9)//10 else ButtonStyle.green,
+                    disabled = page>=(self.size+9)//10,
                     callback = [ self.send_playlist_embed ],
                     check = [ self.check_author ],
                     params = {"page": page+1},
@@ -211,8 +222,8 @@ class UserSaved:
                 ),
                 Button(
                     label = "Next",
-                    style = ButtonStyle.gray if page>=(len(self.saved)+9)//10 else ButtonStyle.green,
-                    disabled = page>=(len(self.saved)+9)//10,
+                    style = ButtonStyle.gray if page>=(self.size+9)//10 else ButtonStyle.green,
+                    disabled = page>=(self.size+9)//10,
                     callback = [ self.send_remove_playlist_embed ],
                     check = [ self.check_author ],
                     params = {"page": page+1},

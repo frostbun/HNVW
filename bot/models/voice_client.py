@@ -57,6 +57,13 @@ class VoiceClient:
         self.last_search = youtube_search(name)
         self.voice_client.loop.create_task(self.send_search_embed())
 
+    async def select(self, index):
+        song = self.last_search[index]
+        self.queue.append(song)
+        await self.ctx.send(embed=song.get_embed("Added to queue"))
+        if not self.voice_client.is_playing():
+            await self.dequeue()
+
     # embed =======================================================================================
     async def send_np_embed(self):
         # delete last np message
@@ -72,7 +79,7 @@ class VoiceClient:
                     label = "Stop", 
                     style = ButtonStyle.red,
                     callback = [ self.bot.get_command("stop") ],
-                    params = {"ctx": self.ctx},
+                    params = {"context": self.ctx},
                 ),
                 Button(
                     label = "Resume" if self.voice_client.is_paused() else "Pause",
@@ -152,13 +159,10 @@ class VoiceClient:
                         SelectOption(
                             label = song.title,
                             description = format_duration(song.duration),
-                            value = song.initial_url,
-                        ) for song in self.last_search
+                            value = i,
+                        ) for i, song in enumerate(self.last_search)
                     ],
-                    callback = [ self.bot.get_command("play") ],
-                    default_param_name = "url",
-                    default_param_type = str,
-                    params = {"ctx": self.ctx},
+                    callback = [ self.select ],
                 ),
                 Button(
                     label = "Cancel",

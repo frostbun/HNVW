@@ -14,7 +14,7 @@ class Song:
         return Embed(
             title = title,
             desc = f"**[{self.title}]({self.initial_url})**",
-            footer = f"*Duration: {format_duration(self.duration)}*",
+            footer = f"Duration: {format_duration(self.duration)}",
             thumbnail = self.thumbnail,
         )
 

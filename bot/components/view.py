@@ -27,11 +27,11 @@ class Button(ui.Button):
 
     async def callback(self, i):
         for check in self.check:
-            if not await check():
+            if not await check(i):
                 return
         await i.message.delete()
-        if "ctx" in self.params:
-            self.params["ctx"].author = i.user
+        if "context" in self.params:
+            self.params["context"].author = i.user
         for cb in self.cb:
             await cb(**self.params)
 
@@ -49,11 +49,11 @@ class Select(ui.Select):
 
     async def callback(self, i):
         for check in self.check:
-            if not await check():
+            if not await check(i):
                 return
         await i.message.delete()
-        if "ctx" in self.params:
-            self.params["ctx"].author = i.user
+        if "context" in self.params:
+            self.params["context"].author = i.user
         self.params[self.default_param_name] = self.default_param_type(self.values[0])
         for cb in self.cb:
             await cb(**self.params)
