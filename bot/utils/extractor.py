@@ -3,7 +3,8 @@ from youtube_dl import YoutubeDL
 from .validator import check_url
 from ..models import Song
 
-from configs import YDL_OPTIONS, YDL_NO_PLAYLIST_OPTIONS
+YDL_OPTIONS = {"format": "bestaudio"}
+YDL_NO_PLAYLIST_OPTIONS = {"format": "bestaudio", "noplaylist": True}
 
 def extract_one(url):
     with YoutubeDL(YDL_NO_PLAYLIST_OPTIONS) as ydl:
@@ -15,10 +16,7 @@ def extract_all(url):
         # playlist
         if "entries" in result:
             return (
-                [ 
-                    Song.from_ytdl(entry)
-                    for entry in result["entries"]
-                ], 
+                [ Song.from_ytdl(entry) for entry in result["entries"] ],
                 Song(
                     title = result["title"],
                     duration = sum(int(entry["duration"]) for entry in result["entries"]),
@@ -31,7 +29,7 @@ def extract_all(url):
 
 def youtube_search(name, amount=5):
     with YoutubeDL(YDL_OPTIONS) as ydl:
-        return [ Song.from_ytdl(song) for song in ydl.extract_info(f"ytsearch{amount}:{name}", False)["entries"] ]
+        return [ Song.from_ytdl(entry) for entry in ydl.extract_info(f"ytsearch{amount}:{name}", False)["entries"] ]
 
 def extract_all_or_search(url):
     # input name

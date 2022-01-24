@@ -6,7 +6,7 @@ from ..components import View, Button, Select, ButtonStyle, SelectOption
 from ..utils.formatter import format_duration
 from ..utils.extractor import extract_all_or_search
 
-from configs import DATABASE
+from . import DATABASE
 TABLE = "user_saved_table"
 
 # schema
@@ -24,29 +24,12 @@ with connect(DATABASE) as conn:
 
 class UserSaved:
 
-    def __init__(self, bot, ctx, id:str):
+    TIMEOUT = 180
+
+    def __init__(self, bot, ctx, user):
         self.bot = bot
         self.ctx = ctx
-        self.id = id
-        self.size = self.fetch_size()
-        self.last_active = time()
-
-    # check =======================================================================================
-    async def check_ctx(self, ctx):
-        self.last_active = time()
-        # user change channel
-        if self.ctx.channel != ctx.channel:
-            self.ctx = ctx
-
-    async def check_author(self, i):
-        if self.id != i.user.id:
-            await i.response.send_message(
-                content = "It's not yours",
-                ephemeral = True,
-                delete_after = 10,
-            )
-            return False
-        return True
+        self.user = user
 
     # database ====================================================================================
     def fetch_one(self, id):
@@ -58,7 +41,7 @@ class UserSaved:
                         WHERE user_id=? 
                         AND id=? 
                     """,
-                    (self.id, id)
+                    (self.user.id, id)
                 ).fetchone()
             )
 
@@ -69,7 +52,7 @@ class UserSaved:
                     FROM {TABLE} 
                     WHERE user_id=? 
                 """,
-                (self.id, )
+                (self.user.id, )
             ).fetchone()[0]
 
     def fetch(self, page):
@@ -82,7 +65,7 @@ class UserSaved:
                         LIMIT 10 
                         OFFSET {10*(page-1)}
                     """,
-                    (self.id, )
+                    (self.user.id, )
                 ).fetchall()
             ]
 
@@ -93,7 +76,7 @@ class UserSaved:
                     VALUES (?, ?, ?, ?, ?) 
                 """,
                 (
-                    self.id,
+                    self.user.id,
                     self.last_search.title,
                     self.last_search.duration,
                     self.last_search.thumbnail,
@@ -110,41 +93,41 @@ class UserSaved:
             conn.commit()
         await self.ctx.send(embed=song.get_embed("Your song was removed"))
 
-    def search(self, url):
-        self.last_search = extract_all_or_search(url)[1]
-        self.bot.loop.create_task(self.send_prompt_embed())
-
     # embed =======================================================================================
-    async def send_prompt_embed(self):
-        # delete old promt
-        try:
-            await self.last_promt.delete()
-        except:
-            pass
-        # send new one
-        self.last_promt = await self.ctx.send(
-            embed = self.last_search.get_embed("Add to your playlist?"),
-            view = View(
-                Button(
-                    label = "Cancel",
-                    style = ButtonStyle.red,
+    async def check_author(self, i):
+        if self.user != i.user:
+            await i.response.send_message(
+                content = "It's not yours",
+                ephemeral = True,
+                delete_after = 10,
+            )
+            return False
+        return True
+
+    def send_prompt_embed(self, url):
+        self.last_search = extract_all_or_search(url)[1]
+        self.bot.loop.create_task(
+            self.ctx.send(
+                embed = self.last_search.get_embed("Add to your playlist?"),
+                view = View(
+                    Button(
+                        label = "Cancel",
+                        style = ButtonStyle.red,
+                    ),
+                    Button(
+                        label = "Save",
+                        style = ButtonStyle.green,
+                        callback = [ self.insert ],
+                    ),
                     check = [ self.check_author ],
                 ),
-                Button(
-                    label = "Save",
-                    style = ButtonStyle.green,
-                    callback = [ self.insert ],
-                    check = [ self.check_author ],
-                ),
+                delete_after = UserSaved.TIMEOUT,
             )
         )
 
     async def send_playlist_embed(self, page):
-        try:
-            await self.last_playlist_message.delete()
-        except:
-            pass
-        self.last_playlist_message = await self.ctx.send(
+        size = self.fetch_size()
+        await self.ctx.send(
             "**Choose a song to play:**",
             view = View(
                 Select(
@@ -157,7 +140,6 @@ class UserSaved:
                         ) for id, song in self.fetch(page)
                     ],
                     callback = [ self.bot.get_command("play") ],
-                    check = [ self.check_author ],
                     default_param_name = "url",
                     default_param_type = str,
                     params = {"context": self.ctx},
@@ -165,33 +147,29 @@ class UserSaved:
                 Button(
                     label = "Cancel",
                     style = ButtonStyle.red,
-                    check = [ self.check_author ],
                 ),
                 Button(
                     label = "Previous",
                     style = ButtonStyle.gray if page<=1 else ButtonStyle.green,
                     disabled = page<=1,
                     callback = [ self.send_playlist_embed ],
-                    check = [ self.check_author ],
                     params = {"page": page-1},
                 ),
                 Button(
                     label = "Next",
-                    style = ButtonStyle.gray if page>=(self.size+9)//10 else ButtonStyle.green,
-                    disabled = page>=(self.size+9)//10,
+                    style = ButtonStyle.gray if page>=(size+9)//10 else ButtonStyle.green,
+                    disabled = page>=(size+9)//10,
                     callback = [ self.send_playlist_embed ],
-                    check = [ self.check_author ],
                     params = {"page": page+1},
                 ),
-            )
+                check = [ self.check_author ],
+            ),
+            delete_after = UserSaved.TIMEOUT,
         )
 
     async def send_remove_playlist_embed(self, page):
-        try:
-            await self.last_remove_playlist_message.delete()
-        except:
-            pass
-        self.last_remove_playlist_message = await self.ctx.send(
+        size = self.fetch_size()
+        await self.ctx.send(
             "**Choose a song to remove:**",
             view = View(
                 Select(
@@ -204,50 +182,27 @@ class UserSaved:
                         ) for id, song in self.fetch(page)
                     ],
                     callback = [ self.remove ],
-                    check = [ self.check_author ],
                     default_param_name = "id",
                 ),
                 Button(
                     label = "Cancel",
                     style = ButtonStyle.red,
-                    check = [ self.check_author ],
                 ),
                 Button(
                     label = "Previous",
                     style = ButtonStyle.gray if page<=1 else ButtonStyle.green,
                     disabled = page<=1,
                     callback = [ self.send_remove_playlist_embed ],
-                    check = [ self.check_author ],
                     params = {"page": page-1},
                 ),
                 Button(
                     label = "Next",
-                    style = ButtonStyle.gray if page>=(self.size+9)//10 else ButtonStyle.green,
-                    disabled = page>=(self.size+9)//10,
+                    style = ButtonStyle.gray if page>=(size+9)//10 else ButtonStyle.green,
+                    disabled = page>=(size+9)//10,
                     callback = [ self.send_remove_playlist_embed ],
-                    check = [ self.check_author ],
                     params = {"page": page+1},
                 ),
-            )
+                check = [ self.check_author ],
+            ),
+            delete_after = UserSaved.TIMEOUT,
         )
-
-    # stop ========================================================================================
-    async def stop(self):
-        await self.delete_all_message()
-
-    async def delete_all_message(self):
-        # delete last prompt
-        try:
-            await self.last_promt.delete()
-        except:
-            pass
-        # delete last playlist message
-        try:
-            await self.last_playlist_message.delete()
-        except:
-            pass
-        # delete last remove playlist message
-        try:
-            await self.last_remove_playlist_message.delete()
-        except:
-            pass

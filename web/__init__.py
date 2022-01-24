@@ -8,3 +8,6 @@ def index():
                 location.href = 'https://discord.com/api/oauth2/authorize?client_id=917296694247436298&permissions=1644972474359&scope=bot'
                 </script>
             """
+
+from logging import getLogger
+getLogger("werkzeug").disabled = True

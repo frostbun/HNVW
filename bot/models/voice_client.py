@@ -8,18 +8,18 @@ from ..utils.validator import check_url
 from ..utils.formatter import format_duration
 from ..utils.extractor import extract_one, extract_all_or_search, youtube_search
 
-from configs import FFMPEG_OPTIONS
+FFMPEG_OPTIONS = {"bitrate": 128, "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5", "options": "-vn"}
 
 class VoiceClient:
 
-    def __init__(self, bot, ctx, voice_client):
+    def __init__(self, bot, ctx, guild, voice_client):
         self.bot = bot
         self.ctx = ctx
+        self.guild = guild
         self.voice_client = voice_client
         self.queue = []
         self.loop = 0
         self.playing = None
-        self.last_active = time()
 
     def enqueue(self, url):
         songs, song = extract_all_or_search(url)
@@ -87,7 +87,6 @@ class VoiceClient:
                     callback = [ self.resume if self.voice_client.is_paused() else self.pause ],
                 ),
                 Button(
-                    style = ButtonStyle.gray,
                     label = "Skip",
                     callback = [ self.skip ],
                 ),
@@ -118,7 +117,7 @@ class VoiceClient:
                     f"**[{i+1}. {song.title}]({song.initial_url})**"
                     for i, song in enumerate(self.queue[10*(page-1): 10*page], 10*(page-1))
                 ),
-                footer = f"Total duration: {format_duration(sum(song.duration for song in self.queue))}"
+                footer_text = f"Total duration: {format_duration(sum(song.duration for song in self.queue))}"
             ),
             view = View(
                 Button(
@@ -173,7 +172,7 @@ class VoiceClient:
 
     # control =====================================================================================
     async def toggle_loop(self):
-        self.loop = (self.loop+1)%3
+        self.loop = (self.loop+1) % 3
         await self.send_np_embed()
 
     async def pause(self):
@@ -210,6 +209,7 @@ class VoiceClient:
         self.loop = 0
         await self.delete_all_message()
         await self.voice_client.disconnect()
+        self.voice_client.cleanup()
 
     async def delete_all_message(self):
         # delete last np message

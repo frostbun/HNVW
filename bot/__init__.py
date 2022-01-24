@@ -3,12 +3,15 @@ from discord.ext.commands import Bot, when_mentioned_or
 
 from .cogs import *
 
-from configs import COMMAND_PREFIX
+COMMAND_PREFIX = "$"
 
-bot = Bot(when_mentioned_or(COMMAND_PREFIX))
-bot.add_cog(MusicCog(bot))
-
-@bot.event
-async def on_ready():
-    await bot.change_presence(activity=Activity(type=ActivityType.listening, name=f"{COMMAND_PREFIX}help"))
-    print(bot.user)
+bot = Bot(
+    command_prefix = when_mentioned_or(COMMAND_PREFIX),
+    activity = Activity(
+        type = ActivityType.listening,
+        name = f"{COMMAND_PREFIX}help",
+    ),
+    strip_after_prefix = True,
+)
+bot.add_cog(Music(bot))
+bot.add_cog(Game(bot))
