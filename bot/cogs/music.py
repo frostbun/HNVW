@@ -90,7 +90,7 @@ class Music(Cog):
     async def stop(self, ctx):
         if not await self.is_playing(ctx):
             return
-        await self.voice_client.pop(ctx.guild).stop()
+        await self.voice_client[ctx.guild].stop()
 
     # checks section ===============================================================================
     async def start_voice_client(self, ctx):
@@ -98,8 +98,7 @@ class Music(Cog):
             return False
         if ctx.guild in self.voice_client:
             return True
-        self.voice_client[ctx.guild] = VoiceClient(ctx)
-        await self.voice_client[ctx.guild].start()
+        await VoiceClient(ctx, self.voice_client).start()
         return True
 
     async def is_playing(self, ctx):

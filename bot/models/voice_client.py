@@ -12,10 +12,11 @@ class VoiceClient:
     TIMEOUT = 60
     FFMPEG_OPTIONS = {"bitrate": 128, "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5", "options": "-vn"}
 
-    def __init__(self, ctx):
+    def __init__(self, ctx, all_voice_clients):
         self.ctx = ctx
         self.bot = ctx.bot
         self.guild = ctx.guild
+        self.all_voice_clients = all_voice_clients
 
     def enqueue(self, url):
         songs, song = extract_all_or_search(url)
@@ -27,7 +28,7 @@ class VoiceClient:
     async def dequeue(self):
         # no more music, no loop
         if not self.queue and self.loop == 0:
-            return await self.bot.get_command("stop")(self.ctx)
+            return await self.stop()
         # not playing or no loop => fetch new song
         if not self.playing or self.loop != 1:
             if self.loop == 2 and not self.playing:
@@ -82,8 +83,7 @@ class VoiceClient:
                 Button(
                     label = "Stop", 
                     style = ButtonStyle.red,
-                    callback = [ self.bot.get_command("stop") ],
-                    params = {"context": self.ctx},
+                    callback = [ self.stop ],
                 ),
                 Button(
                     label = "Resume" if self.voice_client.is_paused() else "Pause",
@@ -170,6 +170,7 @@ class VoiceClient:
     # control =====================================================================================
     async def start(self):
         self.voice_client = await self.ctx.author.voice.channel.connect()
+        self.all_voice_clients[self.guild] = self
         await self.ctx.send(
             embed = Embed(
                 title = "Hello",
@@ -219,6 +220,7 @@ class VoiceClient:
         self.loop = 0
         await self.delete_last_np_message()
         await self.voice_client.disconnect()
+        del self.all_voice_clients[self.guild]
         await self.ctx.send(
             embed = Embed(
                 title = "Goodbye",
