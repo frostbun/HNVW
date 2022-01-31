@@ -6,12 +6,10 @@ class TicTacToe:
     WIN = [ [0,1,2], [3,4,5], [6,7,8], [0,3,6], [1,4,7], [2,5,8], [0,4,8], [2,4,6] ]
     TIMEOUT = 180
 
-    def __init__(self, bot, ctx, user1, user2):
-        self.bot = bot
+    def __init__(self, ctx, other):
         self.ctx = ctx
-        self.users = [ user1, user2 ]
-        self.status = [-1] * 9
-        self.turn = 1
+        self.bot = ctx.bot
+        self.users = [ ctx.author, other ]
 
     async def status_check(self):
         marks = [ i for i, status in enumerate(self.status) if status == self.turn ]
@@ -41,7 +39,10 @@ class TicTacToe:
             await self.send_win_embed(status)
 
     async def start(self):
-        await self.ctx.send(
+        self.status = [-1] * 9
+        self.turn = 1
+        self.title = f"{self.users[0].display_name} vs. {self.users[1].mention}"
+        await self.ctx.respond(
             f"{self.users[0].display_name} challenges {self.users[1].mention} to a tic-tac-toe game!",
             view = View(
                 Button(
@@ -61,7 +62,7 @@ class TicTacToe:
     async def send_board_embed(self):
         self.turn = (self.turn+1) % 2
         await self.ctx.send(
-            f"{self.users[0].display_name} vs. {self.users[1].display_name}\n{self.users[self.turn].mention} turn!",
+            f"{self.title}\n{self.users[self.turn].mention} turn!",
             view = View(
                 *[ Button(
                     emoji = TicTacToe.EMOJI[self.status[i]],
@@ -78,7 +79,7 @@ class TicTacToe:
 
     async def send_draw_embed(self):
         await self.ctx.send(
-            f"Draw!",
+            f"{self.title}\nDraw!",
             view = View(
                 *[ Button(
                     emoji = TicTacToe.EMOJI[self.status[i]],
@@ -87,12 +88,12 @@ class TicTacToe:
                     row = i//3,
                 ) for i in range(9) ],
             ),
-            delete_after = TicTacToe.TIMEOUT
+            # delete_after = TicTacToe.TIMEOUT
         )
 
     async def send_win_embed(self, marks):
         await self.ctx.send(
-            f"{self.users[self.turn].mention} win!",
+            f"{self.title}\n{self.users[self.turn].mention} win!",
             view = View(
                 *[ Button(
                     emoji = TicTacToe.EMOJI[self.status[i]],
@@ -101,5 +102,5 @@ class TicTacToe:
                     row = i//3,
                 ) for i in range(9) ],
             ),
-            delete_after = TicTacToe.TIMEOUT
+            # delete_after = TicTacToe.TIMEOUT
         )

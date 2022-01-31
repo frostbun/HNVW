@@ -1,4 +1,5 @@
 from discord import ButtonStyle
+from discord.utils import MISSING
 from discord.ui import View as _View, Button as _Button, Select as _Select
 
 class View(_View):
@@ -30,6 +31,7 @@ class Button(_Button):
         url = None,
         style = ButtonStyle.gray,
         disabled = False,
+        custom_id = None,
         row = None,
         callback = [],
         params = {},
@@ -40,6 +42,7 @@ class Button(_Button):
             url = url,
             style = style,
             disabled = disabled,
+            custom_id = custom_id,
             row = row,
         )
         self.cb = callback
@@ -57,6 +60,7 @@ class Select(_Select):
         placeholder,
         options,
         disabled = False,
+        custom_id = MISSING,
         row = None,
         callback = [],
         default_param_name = "index",
@@ -67,6 +71,7 @@ class Select(_Select):
             placeholder = placeholder,
             options = options,
             disabled = disabled,
+            custom_id = custom_id,
             row = row,
         )
         self.cb = callback

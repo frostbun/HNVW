@@ -21,9 +21,9 @@ class Song:
     @staticmethod
     def from_ytdl(song):
         return Song(
-            title=song["title"],
-            duration=song["duration"],
-            thumbnail=song["thumbnails"][-1]["url"],
-            initial_url=song["webpage_url"],
-            play_url=song["url"],
+            title = song["title"],
+            duration = song["duration"],
+            thumbnail = song["thumbnails"][-1]["url"],
+            initial_url = song["webpage_url"],
+            play_url = song["url"],
         )

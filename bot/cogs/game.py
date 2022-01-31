@@ -1,5 +1,6 @@
-from discord import User
-from discord.ext.commands import Cog, command
+from discord import Member
+from discord.commands import slash_command, Option
+from discord.ext.commands import Cog
 
 from ..models import TicTacToe
 
@@ -8,6 +9,6 @@ class Game(Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @command()
-    async def tictactoe(self, ctx, user:User):
-        await TicTacToe(self.bot, ctx, ctx.author, user).start()
+    @slash_command(description="Challenge a member to a tic-tac-toe game")
+    async def tictactoe(self, ctx, member:Option(Member,"Member to challenge")):
+        await TicTacToe(ctx, member).start()

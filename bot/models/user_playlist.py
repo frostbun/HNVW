@@ -1,5 +1,4 @@
 from sqlite3 import connect
-from time import time
 
 from ..models.song import Song
 from ..components import View, Button, Select, ButtonStyle, SelectOption
@@ -7,7 +6,7 @@ from ..utils.formatter import format_duration
 from ..utils.extractor import extract_all_or_search
 
 from . import DATABASE
-TABLE = "user_saved_table"
+TABLE = "user_playlist_table"
 
 # schema
 with connect(DATABASE) as conn:
@@ -22,14 +21,14 @@ with connect(DATABASE) as conn:
         )"""
     )
 
-class UserSaved:
+class UserPlaylist:
 
-    TIMEOUT = 180
+    TIMEOUT = 60
 
-    def __init__(self, bot, ctx, user):
-        self.bot = bot
+    def __init__(self, ctx):
         self.ctx = ctx
-        self.user = user
+        self.bot = ctx.bot
+        self.user = ctx.author
 
     # database ====================================================================================
     def fetch_one(self, id):
@@ -94,7 +93,7 @@ class UserSaved:
         await self.ctx.send(embed=song.get_embed("Your song was removed"))
 
     # embed =======================================================================================
-    async def check_author(self, i):
+    async def author_check(self, i):
         if self.user != i.user:
             await i.response.send_message(
                 content = "It's not yours",
@@ -104,25 +103,26 @@ class UserSaved:
             return False
         return True
 
-    def send_prompt_embed(self, url):
+    def search(self, url):
         self.last_search = extract_all_or_search(url)[1]
-        self.bot.loop.create_task(
-            self.ctx.send(
-                embed = self.last_search.get_embed("Add to your playlist?"),
-                view = View(
-                    Button(
-                        label = "Cancel",
-                        style = ButtonStyle.red,
-                    ),
-                    Button(
-                        label = "Save",
-                        style = ButtonStyle.green,
-                        callback = [ self.insert ],
-                    ),
-                    check = [ self.check_author ],
+        self.bot.loop.create_task(self.send_prompt_embed())
+
+    async def send_prompt_embed(self):
+        await self.ctx.send(
+            embed = self.last_search.get_embed("Add to your playlist?"),
+            view = View(
+                Button(
+                    label = "Cancel",
+                    style = ButtonStyle.red,
                 ),
-                delete_after = UserSaved.TIMEOUT,
-            )
+                Button(
+                    label = "Save",
+                    style = ButtonStyle.green,
+                    callback = [ self.insert ],
+                ),
+                check = [ self.author_check ],
+            ),
+            delete_after = UserPlaylist.TIMEOUT,
         )
 
     async def send_playlist_embed(self, page):
@@ -162,9 +162,9 @@ class UserSaved:
                     callback = [ self.send_playlist_embed ],
                     params = {"page": page+1},
                 ),
-                check = [ self.check_author ],
+                check = [ self.author_check ],
             ),
-            delete_after = UserSaved.TIMEOUT,
+            delete_after = UserPlaylist.TIMEOUT,
         )
 
     async def send_remove_playlist_embed(self, page):
@@ -202,7 +202,7 @@ class UserSaved:
                     callback = [ self.send_remove_playlist_embed ],
                     params = {"page": page+1},
                 ),
-                check = [ self.check_author ],
+                check = [ self.author_check ],
             ),
-            delete_after = UserSaved.TIMEOUT,
+            delete_after = UserPlaylist.TIMEOUT,
         )

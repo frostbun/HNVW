@@ -1,44 +1,40 @@
 from threading import Thread
-from time import time
 
-from discord.ext import tasks
 from discord.ext.commands import Cog, command
 
-from ..components import Embed
-from ..models import VoiceClient, UserSaved
+from ..models import VoiceClient, UserPlaylist
 
 class Music(Cog):
 
     def __init__(self, bot):
         self.bot = bot
         self.voice_client = {}
-        self.music_autoclean.start()
 
     # start voice section =========================================================================
-    @command(brief="Play <youtube url/song name>", aliases=["p"])
+    @command(brief="Play <url|song name>", aliases=["p"])
     async def play(self, ctx, *, url):
-        if not await self.init_voice_client(ctx):
+        if not await self.start_voice_client(ctx):
             return
         Thread(target=lambda: self.voice_client[ctx.guild].enqueue(url)).start()
 
     @command(brief="Search <song name> on youtube", aliases=["s", "find"])
     async def search(self, ctx, *, name):
-        if not await self.init_voice_client(ctx):
+        if not await self.start_voice_client(ctx):
             return
         Thread(target=lambda: self.voice_client[ctx.guild].search(name)).start()
 
     # playlist section ============================================================================
-    @command(brief="Save <youtube url/song name> to your playlist", aliases=["sv"])
+    @command(brief="Save <url|song name> to your playlist", aliases=["sv"])
     async def save(self, ctx, *, url):
-        Thread(target=lambda: UserSaved(self.bot, ctx, ctx.author).send_prompt_embed(url)).start()
+        Thread(target=lambda: UserPlaylist(ctx).search(url)).start()
 
-    @command(brief="Play songs you saved", aliases=["pl"])
+    @command(brief="Play song from your playlist", aliases=["pl"])
     async def playlist(self, ctx, page:int=1):
-        await UserSaved(self.bot, ctx, ctx.author).send_playlist_embed(page)
+        await UserPlaylist(ctx).send_playlist_embed(page)
 
     @command(brief="Remove song from your playlist", aliases=["rm"])
     async def remove(self, ctx, page:int=1):
-        await UserSaved(self.bot, ctx, ctx.author).send_remove_playlist_embed(page)
+        await UserPlaylist(ctx).send_remove_playlist_embed(page)
 
     # now playing section =========================================================================
     @command(brief="Now playing", aliases=["np"])
@@ -94,77 +90,21 @@ class Music(Cog):
     async def stop(self, ctx):
         if not await self.is_playing(ctx):
             return
-        await self.del_voice_client(ctx.guild)
+        await self.voice_client.pop(ctx.guild).stop()
 
-    # tasks section ===============================================================================
-    async def init_voice_client(self, ctx):
-        guild = ctx.guild
-        if guild in self.voice_client:
-            return True
-        try:
-            try:
-                # in case it is bugged 
-                await ctx.guild.voice_client.disconnect()
-                ctx.guild.voice_client.cleanup()
-            except:
-                pass
-            # join
-            self.voice_client[guild] = VoiceClient(self.bot, ctx, guild, await ctx.author.voice.channel.connect())
-            await ctx.send(
-                embed = Embed(
-                    title = "Hello",
-                    desc = self.bot.user,
-                    thumbnail = self.bot.user.avatar.url
-                )
-            )
-            return True
-        except:
-            # failed to join
-            await self.del_voice_client(guild)
-            await ctx.send(
-                embed = Embed(
-                    title = "Opsss",
-                    desc = "You are not\nin a voice channel",
-                    footer_text = self.bot.user,
-                    thumbnail = self.bot.user.avatar.url
-                )
-            )
+    # checks section ===============================================================================
+    async def start_voice_client(self, ctx):
+        if not await self.is_in_voice_channel(ctx):
             return False
+        if ctx.guild in self.voice_client:
+            return True
+        self.voice_client[ctx.guild] = VoiceClient(ctx)
+        await self.voice_client[ctx.guild].start()
+        return True
 
     async def is_playing(self, ctx):
-        guild = ctx.guild
-        if guild in self.voice_client:
-            return True
-        await ctx.send(
-            embed = Embed(
-                title = "Opsss",
-                desc = "You are not\nplaying anything",
-                footer_text = self.bot.user,
-                thumbnail = self.bot.user.avatar.url
-            )
-        )
-        return False
+        return await self.is_in_voice_channel(ctx) and ctx.guild in self.voice_client
 
-    async def del_voice_client(self, guild):
-        try:
-            vc = self.voice_client.pop(guild)
-            await vc.stop()
-            await vc.ctx.send(
-                embed = Embed(
-                    title = "Goodbye",
-                    desc = self.bot.user,
-                    thumbnail = self.bot.user.avatar.url
-                )
-            )
-        except:
-            pass
-
-    @tasks.loop(minutes=10)
-    async def music_autoclean(self):
-        for guild, vc in self.voice_client.copy().items():
-            try:
-                # no one in voice channel                       not playing, no song in queue, deactive time > 5mins
-                if len(vc.voice_client.channel.members) < 2 or (not vc.voice_client.is_playing() and not vc.queue and time()-vc.last_active > 300):
-                    await self.del_voice_client(guild)
-            except:
-                pass
+    async def is_in_voice_channel(self, ctx):
+        # in voice and (no voice client or in the same voice channel)
+        return ctx.author.voice and (ctx.guild not in self.voice_client or ctx.author.voice.channel == self.voice_client[ctx.guild].voice_client.channel)

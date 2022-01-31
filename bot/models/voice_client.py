@@ -1,5 +1,4 @@
 from random import shuffle as rand
-from time import time
 
 from discord import FFmpegOpusAudio
 
@@ -8,18 +7,15 @@ from ..utils.validator import check_url
 from ..utils.formatter import format_duration
 from ..utils.extractor import extract_one, extract_all_or_search, youtube_search
 
-FFMPEG_OPTIONS = {"bitrate": 128, "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5", "options": "-vn"}
-
 class VoiceClient:
 
-    def __init__(self, bot, ctx, guild, voice_client):
-        self.bot = bot
+    TIMEOUT = 60
+    FFMPEG_OPTIONS = {"bitrate": 128, "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5", "options": "-vn"}
+
+    def __init__(self, ctx):
         self.ctx = ctx
-        self.guild = guild
-        self.voice_client = voice_client
-        self.queue = []
-        self.loop = 0
-        self.playing = None
+        self.bot = ctx.bot
+        self.guild = ctx.guild
 
     def enqueue(self, url):
         songs, song = extract_all_or_search(url)
@@ -29,25 +25,22 @@ class VoiceClient:
             self.voice_client.loop.create_task(self.dequeue())
 
     async def dequeue(self):
-        self.last_active = time()
         # no more music, no loop
         if not self.queue and self.loop == 0:
-            self.playing = None
-            await self.delete_all_message()
-            return
+            return await self.bot.get_command("stop")(self.ctx)
         # not playing or no loop => fetch new song
         if not self.playing or self.loop != 1:
             if self.loop == 2 and not self.playing:
                 self.queue.append(self.playing)
             self.playing = self.queue.pop(0)
-        # 403 forbidden => re download
+        # 403 forbidden => redownload
         while not check_url(self.playing.play_url):
             self.playing = extract_one(self.playing.initial_url)
         # 200 ok
         self.voice_client.play(
             FFmpegOpusAudio(
                 self.playing.play_url,
-                **FFMPEG_OPTIONS
+                **VoiceClient.FFMPEG_OPTIONS
             ),
             after = lambda e: self.voice_client.loop.create_task(self.dequeue())
         )
@@ -65,13 +58,24 @@ class VoiceClient:
             await self.dequeue()
 
     # embed =======================================================================================
-    async def send_np_embed(self):
-        # delete last np message
+    async def voice_channel_check(self, i):
+        if not i.user.voice or i.user.voice.channel != self.voice_client.channel:
+            await i.response.send_message(
+                content = "It's not yours",
+                ephemeral = True,
+                delete_after = 10,
+            )
+            return False
+        return True
+
+    async def delete_last_np_message(self):
         try:
             await self.last_np_message.delete()
         except:
             pass
-        # send new one
+
+    async def send_np_embed(self):
+        await self.delete_last_np_message()
         self.last_np_message = await self.ctx.send(
             embed = self.playing.get_embed("Playing"),
             view = View(
@@ -100,17 +104,12 @@ class VoiceClient:
                     style = ButtonStyle.blurple,
                     callback = [ self.send_np_embed, self.send_queue_embed ],
                 ),
+                check = [ self.voice_channel_check ],
             ),
         )
 
     async def send_queue_embed(self, page=1):
-        # delete last queue message
-        try:
-            await self.last_queue_message.delete()
-        except:
-            pass
-        # send new one
-        self.last_queue_message = await self.ctx.send(
+        await self.ctx.send(
             embed = Embed(
                 title = f"Page {page}",
                 desc = "\n".join(
@@ -139,17 +138,13 @@ class VoiceClient:
                     callback = [ self.send_queue_embed ],
                     params = {"page": page+1},
                 ),
+                check = [ self.voice_channel_check ],
             ),
+            delete_after = VoiceClient.TIMEOUT,
         )
 
     async def send_search_embed(self):
-        # delete last search message
-        try:
-            await self.last_search_message.delete()
-        except:
-            pass
-        # send new one
-        self.last_search_message = await self.ctx.send(
+        await self.ctx.send(
             "**Choose a song:**",
             view = View(
                 Select(
@@ -167,10 +162,25 @@ class VoiceClient:
                     label = "Cancel",
                     style = ButtonStyle.red,
                 ),
+                check = [ self.voice_channel_check ],
             ),
+            delete_after = VoiceClient.TIMEOUT,
         )
 
     # control =====================================================================================
+    async def start(self):
+        self.voice_client = await self.ctx.author.voice.channel.connect()
+        await self.ctx.send(
+            embed = Embed(
+                title = "Hello",
+                desc = self.bot.user,
+                thumbnail = self.bot.user.avatar.url
+            )
+        )
+        self.queue = []
+        self.loop = 0
+        self.playing = None
+
     async def toggle_loop(self):
         self.loop = (self.loop+1) % 3
         await self.send_np_embed()
@@ -207,23 +217,12 @@ class VoiceClient:
     async def stop(self):
         self.queue = []
         self.loop = 0
-        await self.delete_all_message()
+        await self.delete_last_np_message()
         await self.voice_client.disconnect()
-        self.voice_client.cleanup()
-
-    async def delete_all_message(self):
-        # delete last np message
-        try:
-            await self.last_np_message.delete()
-        except:
-            pass
-        # delete last queue message
-        try:
-            await self.last_queue_message.delete()
-        except:
-            pass
-        # delete last search message
-        try:
-            await self.last_search_message.delete()
-        except:
-            pass
+        await self.ctx.send(
+            embed = Embed(
+                title = "Goodbye",
+                desc = self.bot.user,
+                thumbnail = self.bot.user.avatar.url
+            )
+        )
