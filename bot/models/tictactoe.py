@@ -2,14 +2,14 @@ from ..components import View, Button, ButtonStyle
 
 class TicTacToe:
 
-    EMOJI = [ "❌", "⭕", "🔳" ]
-    WIN = [ [0,1,2], [3,4,5], [6,7,8], [0,3,6], [1,4,7], [2,5,8], [0,4,8], [2,4,6] ]
+    EMOJI = ( "❌", "⭕", "🔳" )
+    WIN = ( (0,1,2), (3,4,5), (6,7,8), (0,3,6), (1,4,7), (2,5,8), (0,4,8), (2,4,6) )
     TIMEOUT = 180
 
     def __init__(self, ctx, other):
         self.ctx = ctx
         self.bot = ctx.bot
-        self.users = [ ctx.author, other ]
+        self.users = ( ctx.author, other )
 
     async def status_check(self):
         marks = [ i for i, status in enumerate(self.status) if status == self.turn ]

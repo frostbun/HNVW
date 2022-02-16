@@ -22,7 +22,7 @@ bot.add_cog(Game(bot))
 
 @bot.check
 async def no_dm(ctx):
-    return ctx.guild is not None or str(ctx.author.id) == os.environ["OWNER"]
+    return ctx.guild or str(ctx.author.id) == os.environ["OWNER"]
 
 @bot.command(brief="Check bot presence")
 async def ping(ctx):

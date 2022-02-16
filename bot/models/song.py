@@ -18,9 +18,9 @@ class Song:
             thumbnail = self.thumbnail,
         )
 
-    @staticmethod
-    def from_ytdl(song):
-        return Song(
+    @classmethod
+    def from_ytdl(cls, song):
+        return cls(
             title = song["title"],
             duration = song["duration"],
             thumbnail = song["thumbnails"][-1]["url"],
