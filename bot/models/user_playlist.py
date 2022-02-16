@@ -31,7 +31,7 @@ class UserPlaylist:
         self.user = ctx.author
 
     # database ====================================================================================
-    def fetch_one(self, id):
+    async def fetch_one(self, id):
         with connect(DATABASE) as conn:
             return Song(
                 *conn.cursor().execute(
@@ -44,7 +44,7 @@ class UserPlaylist:
                 ).fetchone()
             )
 
-    def fetch_size(self):
+    async def fetch_size(self):
         with connect(DATABASE) as conn:
             return conn.cursor().execute(
                 f"""SELECT COUNT(id) 
@@ -54,7 +54,7 @@ class UserPlaylist:
                 (self.user.id, )
             ).fetchone()[0]
 
-    def fetch(self, page):
+    async def fetch(self, page):
         with connect(DATABASE) as conn:
             return [
                 (data[0], Song(*data[1:])) for data in conn.cursor().execute(
@@ -86,7 +86,7 @@ class UserPlaylist:
         await self.ctx.send(embed=self.last_search.get_embed("Your song was saved"))
 
     async def remove(self, id):
-        song = self.fetch_one(id)
+        song = await self.fetch_one(id)
         with connect(DATABASE) as conn:
             conn.execute(f"DELETE FROM {TABLE} WHERE id=?", (id, ))
             conn.commit()
@@ -126,7 +126,7 @@ class UserPlaylist:
         )
 
     async def send_playlist_embed(self, page):
-        size = self.fetch_size()
+        size = await self.fetch_size()
         await self.ctx.send(
             "**Choose a song to play:**",
             view = View(
@@ -137,7 +137,7 @@ class UserPlaylist:
                             label = song.title,
                             description = format_duration(song.duration),
                             value = song.initial_url,
-                        ) for id, song in self.fetch(page)
+                        ) for id, song in await self.fetch(page)
                     ],
                     callback = [ self.bot.get_command("play") ],
                     default_param_name = "url",
@@ -168,7 +168,7 @@ class UserPlaylist:
         )
 
     async def send_remove_playlist_embed(self, page):
-        size = self.fetch_size()
+        size = await self.fetch_size()
         await self.ctx.send(
             "**Choose a song to remove:**",
             view = View(
@@ -179,7 +179,7 @@ class UserPlaylist:
                             label = song.title,
                             description = format_duration(song.duration),
                             value = id,
-                        ) for id, song in self.fetch(page)
+                        ) for id, song in await self.fetch(page)
                     ],
                     callback = [ self.remove ],
                     default_param_name = "id",

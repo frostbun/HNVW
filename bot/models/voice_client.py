@@ -1,3 +1,4 @@
+from asyncio import sleep
 from random import shuffle as rand
 
 from discord import FFmpegOpusAudio
@@ -11,27 +12,29 @@ class VoiceClient:
 
     TIMEOUT = 60
     FFMPEG_OPTIONS = {"bitrate": 128, "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5", "options": "-vn"}
+    
+    instances = {}
 
-    def __init__(self, ctx, all_voice_clients):
+    def __init__(self, ctx):
         self.ctx = ctx
         self.bot = ctx.bot
         self.guild = ctx.guild
-        self.all_voice_clients = all_voice_clients
 
     def enqueue(self, url):
         songs, song = extract_all_or_search(url)
         self.queue += songs
-        self.voice_client.loop.create_task(self.ctx.send(embed=song.get_embed("Added to queue")))
+        self.bot.loop.create_task(self.ctx.send(embed=song.get_embed("Added to queue")))
         if not self.voice_client.is_playing():
-            self.voice_client.loop.create_task(self.dequeue())
+            self.bot.loop.create_task(self.dequeue())
 
     async def dequeue(self):
         # no more music, no loop
-        if not self.queue and self.loop == 0:
-            return await self.stop()
+        if not self.queue and not self.loop:
+            await self.delete_last_np_message()
+            return
         # not playing or no loop => fetch new song
         if not self.playing or self.loop != 1:
-            if self.loop == 2 and not self.playing:
+            if self.loop == 2 and self.playing:
                 self.queue.append(self.playing)
             self.playing = self.queue.pop(0)
         # 403 forbidden => redownload
@@ -43,13 +46,13 @@ class VoiceClient:
                 self.playing.play_url,
                 **VoiceClient.FFMPEG_OPTIONS
             ),
-            after = lambda e: self.voice_client.loop.create_task(self.dequeue())
+            after = lambda e: self.bot.loop.create_task(self.dequeue())
         )
         await self.send_np_embed()
 
     def search(self, name):
         self.last_search = youtube_search(name)
-        self.voice_client.loop.create_task(self.send_search_embed())
+        self.bot.loop.create_task(self.send_search_embed())
 
     async def select(self, index):
         song = self.last_search[index]
@@ -96,7 +99,7 @@ class VoiceClient:
                 ),
                 Button(
                     label = "Loop All" if self.loop==2 else "Loop One" if self.loop==1 else "Loop Off",
-                    style = ButtonStyle.gray if self.loop==0 else ButtonStyle.green,
+                    style = ButtonStyle.gray if not self.loop else ButtonStyle.green,
                     callback = [ self.toggle_loop ],
                 ),
                 Button(
@@ -168,20 +171,6 @@ class VoiceClient:
         )
 
     # control =====================================================================================
-    async def start(self):
-        self.voice_client = await self.ctx.author.voice.channel.connect()
-        self.all_voice_clients[self.guild] = self
-        await self.ctx.send(
-            embed = Embed(
-                title = "Hello",
-                desc = self.bot.user,
-                thumbnail = self.bot.user.avatar.url
-            )
-        )
-        self.queue = []
-        self.loop = 0
-        self.playing = None
-
     async def toggle_loop(self):
         self.loop = (self.loop+1) % 3
         await self.send_np_embed()
@@ -197,10 +186,14 @@ class VoiceClient:
         await self.send_np_embed()
 
     async def skip(self, index=0):
-        if index == 0 and self.voice_client.is_playing():
+        if not index:
+            if not self.voice_client.is_playing():
+                return
             await self.ctx.send(embed=self.playing.get_embed("Skipped"))
             self.voice_client.stop()
         else:
+            if not self.queue:
+                return
             index = (index-1) % len(self.queue)
             await self.ctx.send(embed=self.queue.pop(index).get_embed("Skipped"))
             await self.send_np_embed()
@@ -210,17 +203,42 @@ class VoiceClient:
         await self.send_queue_embed()
 
     async def move(self, fr, to):
+        if not self.queue:
+            return
         fr = (fr-1) % len(self.queue)
         to = (to-1) % len(self.queue)
         self.queue.insert(to, self.queue.pop(fr))
         await self.send_queue_embed()
+
+    # start/stop ==================================================================================
+    async def start(self):
+        if self.guild in VoiceClient.instances:
+            return True
+        if not self.ctx.author.voice:
+            return False
+        if self.guild.voice_client:
+            await self.guild.voice_client.disconnect()
+        self.voice_client = await self.ctx.author.voice.channel.connect()
+        VoiceClient.instances[self.guild] = self
+        await self.ctx.send(
+            embed = Embed(
+                title = "Hello",
+                desc = self.bot.user,
+                thumbnail = self.bot.user.avatar.url
+            )
+        )
+        self.queue = []
+        self.loop = 0
+        self.playing = None
+        self.bot.loop.create_task(self.autostop())
+        return True
 
     async def stop(self):
         self.queue = []
         self.loop = 0
         await self.delete_last_np_message()
         await self.voice_client.disconnect()
-        del self.all_voice_clients[self.guild]
+        del VoiceClient.instances[self.guild]
         await self.ctx.send(
             embed = Embed(
                 title = "Goodbye",
@@ -228,3 +246,9 @@ class VoiceClient:
                 thumbnail = self.bot.user.avatar.url
             )
         )
+
+    async def autostop(self):
+        while self.guild in VoiceClient.instances:
+            await sleep(600)
+            if len(self.voice_client.channel.members) < 2 or (not self.voice_client.is_playing() and not self.queue and not self.loop):
+                await self.stop()
