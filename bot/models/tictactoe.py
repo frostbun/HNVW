@@ -14,8 +14,7 @@ class TicTacToe:
     async def status_check(self):
         marks = [ i for i, status in enumerate(self.status) if status == self.turn ]
         for win in TicTacToe.WIN:
-            if all(w in marks for w in win):
-                return win
+            if all(w in marks for w in win): return win
         return -1 in self.status
 
     async def btn_check(self, i):
@@ -31,12 +30,9 @@ class TicTacToe:
     async def btn_callback(self, index):
         self.status[index] = self.turn
         status = await self.status_check()
-        if status is True:
-            await self.send_board_embed()
-        elif status is False:
-            await self.send_draw_embed()
-        else:
-            await self.send_win_embed(status)
+        if status is True: await self.send_board_embed()
+        elif status is False: await self.send_draw_embed()
+        else: await self.send_win_embed(status)
 
     async def start(self):
         self.status = [-1] * 9

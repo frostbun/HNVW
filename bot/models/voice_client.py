@@ -24,22 +24,17 @@ class VoiceClient:
         songs, song = extract_all_or_search(url)
         self.queue += songs
         self.bot.loop.create_task(self.ctx.send(embed=song.get_embed("Added to queue")))
-        if not self.voice_client.is_playing():
-            self.bot.loop.create_task(self.dequeue())
+        if not self.voice_client.is_playing(): self.bot.loop.create_task(self.dequeue())
 
     async def dequeue(self):
         # no more music, no loop
-        if not self.queue and not self.loop:
-            await self.delete_last_np_message()
-            return
+        if not self.queue and not self.loop: return await self.delete_last_np_message()
         # not playing or no loop => fetch new song
         if not self.playing or self.loop != 1:
-            if self.loop == 2 and self.playing:
-                self.queue.append(self.playing)
+            if self.loop == 2 and self.playing: self.queue.append(self.playing)
             self.playing = self.queue.pop(0)
         # 403 forbidden => redownload
-        while not check_url(self.playing.play_url):
-            self.playing = extract_one(self.playing.initial_url)
+        while not check_url(self.playing.play_url): self.playing = extract_one(self.playing.initial_url)
         # 200 ok
         self.voice_client.play(
             FFmpegOpusAudio(
@@ -58,8 +53,7 @@ class VoiceClient:
         song = self.last_search[index]
         self.queue.append(song)
         await self.ctx.send(embed=song.get_embed("Added to queue"))
-        if not self.voice_client.is_playing():
-            await self.dequeue()
+        if not self.voice_client.is_playing(): await self.dequeue()
 
     # embed =======================================================================================
     async def voice_channel_check(self, i):
@@ -73,10 +67,8 @@ class VoiceClient:
         return True
 
     async def delete_last_np_message(self):
-        try:
-            await self.last_np_message.delete()
-        except:
-            pass
+        try: await self.last_np_message.delete()
+        except Exception: ...
 
     async def send_np_embed(self):
         await self.delete_last_np_message()
@@ -176,24 +168,20 @@ class VoiceClient:
         await self.send_np_embed()
 
     async def pause(self):
-        if not self.voice_client.is_paused():
-            self.voice_client.pause()
+        if not self.voice_client.is_paused(): self.voice_client.pause()
         await self.send_np_embed()
 
     async def resume(self):
-        if self.voice_client.is_paused():
-            self.voice_client.resume()
+        if self.voice_client.is_paused(): self.voice_client.resume()
         await self.send_np_embed()
 
     async def skip(self, index=0):
         if not index:
-            if not self.voice_client.is_playing():
-                return
+            if not self.voice_client.is_playing(): return
             await self.ctx.send(embed=self.playing.get_embed("Skipped"))
             self.voice_client.stop()
         else:
-            if not self.queue:
-                return
+            if not self.queue: return
             index = (index-1) % len(self.queue)
             await self.ctx.send(embed=self.queue.pop(index).get_embed("Skipped"))
             await self.send_np_embed()
@@ -203,8 +191,7 @@ class VoiceClient:
         await self.send_queue_embed()
 
     async def move(self, fr, to):
-        if not self.queue:
-            return
+        if not self.queue: return
         fr = (fr-1) % len(self.queue)
         to = (to-1) % len(self.queue)
         self.queue.insert(to, self.queue.pop(fr))
@@ -212,12 +199,9 @@ class VoiceClient:
 
     # start/stop ==================================================================================
     async def start(self):
-        if self.guild in VoiceClient.instances:
-            return True
-        if not self.ctx.author.voice:
-            return False
-        if self.guild.voice_client:
-            await self.guild.voice_client.disconnect()
+        if self.guild in VoiceClient.instances: return True
+        if not self.ctx.author.voice: return False
+        if self.guild.voice_client: await self.guild.voice_client.disconnect()
         self.voice_client = await self.ctx.author.voice.channel.connect()
         VoiceClient.instances[self.guild] = self
         await self.ctx.send(
@@ -250,5 +234,10 @@ class VoiceClient:
     async def autostop(self):
         while self.guild in VoiceClient.instances:
             await sleep(600)
-            if len(self.voice_client.channel.members) < 2 or (not self.voice_client.is_playing() and not self.queue and not self.loop):
-                await self.stop()
+            if len(self.voice_client.channel.members) < 2\
+                or (
+                    not self.voice_client.is_playing()\
+                    and not self.queue\
+                    and not self.loop\
+                )\
+            : await self.stop()

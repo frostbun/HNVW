@@ -12,14 +12,12 @@ class Music(Cog):
     # start voice section =========================================================================
     @command(brief="Play <url|song name>", aliases=("p", ))
     async def play(self, ctx, *, url):
-        if not await self.start_voice_client(ctx):
-            return
+        if not await self.start_voice_client(ctx): return
         Thread(target=lambda: VoiceClient.instances[ctx.guild].enqueue(url)).start()
 
     @command(brief="Search <song name> on youtube", aliases=("s", "find"))
     async def search(self, ctx, *, name):
-        if not await self.start_voice_client(ctx):
-            return
+        if not await self.start_voice_client(ctx): return
         Thread(target=lambda: VoiceClient.instances[ctx.guild].search(name)).start()
 
     # playlist section ============================================================================
@@ -38,57 +36,48 @@ class Music(Cog):
     # now playing section =========================================================================
     @command(brief="Now playing", aliases=("np", ))
     async def nowplaying(self, ctx):
-        if not await self.is_playing(ctx):
-            return
+        if not await self.is_playing(ctx): return
         await VoiceClient.instances[ctx.guild].send_np_embed()
 
     @command(brief="Skip song at (<index>) or current song")
     async def skip(self, ctx, index:int=0):
-        if not await self.is_playing(ctx):
-            return
+        if not await self.is_playing(ctx): return
         await VoiceClient.instances[ctx.guild].skip(index)
 
     @command(brief="Toggle Loop One/Loop All", aliases=("repeat", "cycle"))
     async def loop(self, ctx):
-        if not await self.is_playing(ctx):
-            return
+        if not await self.is_playing(ctx): return
         await VoiceClient.instances[ctx.guild].toggle_loop()
 
     @command(brief="Pause song")
     async def pause(self, ctx):
-        if not await self.is_playing(ctx):
-            return
+        if not await self.is_playing(ctx): return
         await VoiceClient.instances[ctx.guild].pause()
 
     @command(brief="Resume song")
     async def resume(self, ctx):
-        if not await self.is_playing(ctx):
-            return
+        if not await self.is_playing(ctx): return
         await VoiceClient.instances[ctx.guild].resume()
 
     # queue section ===============================================================================
     @command(brief="Show queue (<page>) (10 per page)", aliases=("q", "list"))
     async def queue(self, ctx, page:int=1):
-        if not await self.is_playing(ctx):
-            return
+        if not await self.is_playing(ctx): return
         await VoiceClient.instances[ctx.guild].send_queue_embed(page)
 
     @command(brief="Move song (<from>) to (<to>)", aliases=("mv", ))
     async def move(self, ctx, fr:int=0, to:int=1):
-        if not await self.is_playing(ctx):
-            return
+        if not await self.is_playing(ctx): return
         await VoiceClient.instances[ctx.guild].move(fr, to)
 
     @command(brief="Shuffle queue", aliases=("random", ))
     async def shuffle(self, ctx):
-        if not await self.is_playing(ctx):
-            return
+        if not await self.is_playing(ctx): return
         await VoiceClient.instances[ctx.guild].shuffle()
 
     @command(brief="Stop and leave", aliases=("leave", ))
     async def stop(self, ctx):
-        if not await self.is_playing(ctx):
-            return
+        if not await self.is_playing(ctx): return
         await VoiceClient.instances[ctx.guild].stop()
 
     # checks section ==============================================================================

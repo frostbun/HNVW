@@ -18,8 +18,7 @@ class View(_View):
 
     async def interaction_check(self, i):
         for check in self.check:
-            if not await check(i):
-                return False
+            if not await check(i): return False
         await i.message.delete()
         return True
 
@@ -49,10 +48,8 @@ class Button(_Button):
         self.params = params
 
     async def callback(self, i):
-        if "context" in self.params:
-            self.params["context"].author = i.user
-        for cb in self.cb:
-            await cb(**self.params)
+        if "context" in self.params: self.params["context"].author = i.user
+        for cb in self.cb: await cb(**self.params)
 
 class Select(_Select):
     def __init__(
@@ -80,8 +77,6 @@ class Select(_Select):
         self.params = params
 
     async def callback(self, i):
-        if "context" in self.params:
-            self.params["context"].author = i.user
         self.params[self.default_param_name] = self.default_param_type(self.values[0])
-        for cb in self.cb:
-            await cb(**self.params)
+        if "context" in self.params: self.params["context"].author = i.user
+        for cb in self.cb: await cb(**self.params)
