@@ -3,7 +3,7 @@ from random import shuffle as rand
 
 from discord import FFmpegOpusAudio
 
-from ..components import Embed, View, Button, Select, ButtonStyle, SelectOption
+from ..components import Embed, View, Button, Select, ButtonStyle, SelectOption, InteractionCallback
 from ..utils.validator import check_url
 from ..utils.formatter import format_duration
 from ..utils.extractor import extract_one, extract_all_or_search, youtube_search
@@ -20,10 +20,10 @@ class VoiceClient:
         self.bot = ctx.bot
         self.guild = ctx.guild
 
-    def enqueue(self, url):
-        songs, song = extract_all_or_search(url)
+    def enqueue(self, url: str):
+        song, songs = extract_all_or_search(url)
         self.queue += songs
-        self.bot.loop.create_task(self.ctx.send(embed=song.get_embed("Added to queue")))
+        self.bot.loop.create_task(self.ctx.send(embed = song.get_embed("Added to queue")))
         if not self.voice_client.is_playing(): self.bot.loop.create_task(self.dequeue())
 
     async def dequeue(self):
@@ -39,26 +39,26 @@ class VoiceClient:
         self.voice_client.play(
             FFmpegOpusAudio(
                 self.playing.play_url,
-                **VoiceClient.FFMPEG_OPTIONS
+                **self.FFMPEG_OPTIONS
             ),
-            after = lambda e: self.bot.loop.create_task(self.dequeue())
+            after = lambda _: self.bot.loop.create_task(self.dequeue())
         )
         await self.send_np_embed()
 
-    def search(self, name):
+    def search(self, name: str):
         self.last_search = youtube_search(name)
         self.bot.loop.create_task(self.send_search_embed())
 
-    async def select(self, index):
+    async def select(self, index: int):
         song = self.last_search[index]
         self.queue.append(song)
-        await self.ctx.send(embed=song.get_embed("Added to queue"))
+        await self.ctx.send(embed = song.get_embed("Added to queue"))
         if not self.voice_client.is_playing(): await self.dequeue()
 
     # embed =======================================================================================
-    async def voice_channel_check(self, i):
-        if not i.user.voice or i.user.voice.channel != self.voice_client.channel:
-            await i.response.send_message(
+    async def voice_channel_check(self, interaction) -> bool:
+        if not interaction.user.voice or interaction.user.voice.channel != self.voice_client.channel:
+            await interaction.response.send_message(
                 content = "It's not yours",
                 ephemeral = True,
                 delete_after = 10,
@@ -68,7 +68,7 @@ class VoiceClient:
 
     async def delete_last_np_message(self):
         try: await self.last_np_message.delete()
-        except Exception: ...
+        except Exception: pass
 
     async def send_np_embed(self):
         await self.delete_last_np_message()
@@ -78,28 +78,28 @@ class VoiceClient:
                 Button(
                     label = "Stop", 
                     style = ButtonStyle.red,
-                    callback = [ self.stop ],
+                    callbacks = (InteractionCallback(self.stop), ),
                 ),
                 Button(
                     label = "Resume" if self.voice_client.is_paused() else "Pause",
                     style = ButtonStyle.green if self.voice_client.is_paused() else ButtonStyle.gray,
-                    callback = [ self.resume if self.voice_client.is_paused() else self.pause ],
+                    callbacks = (InteractionCallback(self.resume if self.voice_client.is_paused() else self.pause), ),
                 ),
                 Button(
                     label = "Skip",
-                    callback = [ self.skip ],
+                    callbacks = (InteractionCallback(self.skip), ),
                 ),
                 Button(
                     label = "Loop All" if self.loop==2 else "Loop One" if self.loop==1 else "Loop Off",
                     style = ButtonStyle.gray if not self.loop else ButtonStyle.green,
-                    callback = [ self.toggle_loop ],
+                    callbacks = (InteractionCallback(self.toggle_loop), ),
                 ),
                 Button(
                     label = "Queue",
                     style = ButtonStyle.blurple,
-                    callback = [ self.send_np_embed, self.send_queue_embed ],
+                    callbacks = (InteractionCallback(self.send_np_embed), InteractionCallback(self.send_queue_embed)),
                 ),
-                check = [ self.voice_channel_check ],
+                checks = (InteractionCallback(self.voice_channel_check), ),
             ),
         )
 
@@ -118,24 +118,32 @@ class VoiceClient:
                     label = "Previous",
                     style = ButtonStyle.gray if page<=1 else ButtonStyle.green,
                     disabled = page<=1,
-                    callback = [ self.send_queue_embed ],
-                    params = {"page": page-1},
+                    callbacks = (
+                        InteractionCallback(
+                            func = self.send_queue_embed,
+                            page = page-1,
+                        ),
+                    ),
                 ),
                 Button(
                     label = "Shuffle",
                     style = ButtonStyle.blurple,
-                    callback = [ self.shuffle ],
+                    callbacks = (InteractionCallback(self.shuffle), ),
                 ),
                 Button(
                     label = "Next",
                     style = ButtonStyle.gray if page>=(len(self.queue)+9)//10 else ButtonStyle.green,
                     disabled = page>=(len(self.queue)+9)//10,
-                    callback = [ self.send_queue_embed ],
-                    params = {"page": page+1},
+                    callbacks = (
+                        InteractionCallback(
+                            func = self.send_queue_embed,
+                            page = page+1,
+                        ),
+                    ),
                 ),
-                check = [ self.voice_channel_check ],
+                checks = (InteractionCallback(self.voice_channel_check), ),
             ),
-            delete_after = VoiceClient.TIMEOUT,
+            delete_after = self.TIMEOUT,
         )
 
     async def send_search_embed(self):
@@ -151,15 +159,21 @@ class VoiceClient:
                             value = i,
                         ) for i, song in enumerate(self.last_search)
                     ],
-                    callback = [ self.select ],
+                    callbacks = (
+                        InteractionCallback(
+                            func = self.select,
+                            default_arg_name = "index",
+                            default_arg_type = int,
+                        ),
+                    ),
                 ),
                 Button(
                     label = "Cancel",
                     style = ButtonStyle.red,
                 ),
-                check = [ self.voice_channel_check ],
+                checks = (InteractionCallback(self.voice_channel_check), ),
             ),
-            delete_after = VoiceClient.TIMEOUT,
+            delete_after = self.TIMEOUT,
         )
 
     # control =====================================================================================
@@ -175,7 +189,7 @@ class VoiceClient:
         if self.voice_client.is_paused(): self.voice_client.resume()
         await self.send_np_embed()
 
-    async def skip(self, index=0):
+    async def skip(self, index: int = 0):
         if not index:
             if not self.voice_client.is_playing(): return
             await self.ctx.send(embed=self.playing.get_embed("Skipped"))
@@ -184,26 +198,25 @@ class VoiceClient:
             if not self.queue: return
             index = (index-1) % len(self.queue)
             await self.ctx.send(embed=self.queue.pop(index).get_embed("Skipped"))
-            await self.send_np_embed()
 
     async def shuffle(self):
         rand(self.queue)
         await self.send_queue_embed()
 
-    async def move(self, fr, to):
+    async def move(self, fr: int, to: int):
         if not self.queue: return
-        fr = (fr-1) % len(self.queue)
-        to = (to-1) % len(self.queue)
+        fr = fr % len(self.queue)
+        to = to % len(self.queue)
         self.queue.insert(to, self.queue.pop(fr))
         await self.send_queue_embed()
 
     # start/stop ==================================================================================
-    async def start(self):
-        if self.guild in VoiceClient.instances: return True
+    async def start(self) -> bool:
+        if self.guild in self.instances: return True
         if not self.ctx.author.voice: return False
         if self.guild.voice_client: await self.guild.voice_client.disconnect()
         self.voice_client = await self.ctx.author.voice.channel.connect()
-        VoiceClient.instances[self.guild] = self
+        self.instances[self.guild] = self
         await self.ctx.send(
             embed = Embed(
                 title = "Hello",
@@ -222,7 +235,7 @@ class VoiceClient:
         self.loop = 0
         await self.delete_last_np_message()
         await self.voice_client.disconnect()
-        del VoiceClient.instances[self.guild]
+        del self.instances[self.guild]
         await self.ctx.send(
             embed = Embed(
                 title = "Goodbye",
@@ -232,12 +245,13 @@ class VoiceClient:
         )
 
     async def autostop(self):
-        while self.guild in VoiceClient.instances:
+        while self.guild in self.instances:
             await sleep(600)
-            if len(self.voice_client.channel.members) < 2\
+            if (
+                len(self.voice_client.channel.members) < 2\
                 or (
                     not self.voice_client.is_playing()\
                     and not self.queue\
-                    and not self.loop\
-                )\
-            : await self.stop()
+                    and not self.loop
+                )
+            ): await self.stop()

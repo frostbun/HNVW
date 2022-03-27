@@ -11,26 +11,26 @@ class Music(Cog):
 
     # start voice section =========================================================================
     @command(brief="Play <url|song name>", aliases=("p", ))
-    async def play(self, ctx, *, url):
+    async def play(self, ctx, *, url: str):
         if not await self.start_voice_client(ctx): return
         Thread(target=lambda: VoiceClient.instances[ctx.guild].enqueue(url)).start()
 
     @command(brief="Search <song name> on youtube", aliases=("s", "find"))
-    async def search(self, ctx, *, name):
+    async def search(self, ctx, *, name: str):
         if not await self.start_voice_client(ctx): return
         Thread(target=lambda: VoiceClient.instances[ctx.guild].search(name)).start()
 
     # playlist section ============================================================================
     @command(brief="Save <url|song name> to your playlist", aliases=("sv", ))
-    async def save(self, ctx, *, url):
+    async def save(self, ctx, *, url: str):
         Thread(target=lambda: UserPlaylist(ctx).search(url)).start()
 
     @command(brief="Play song from your playlist", aliases=("pl", ))
-    async def playlist(self, ctx, page:int=1):
+    async def playlist(self, ctx, page: int = 1):
         await UserPlaylist(ctx).send_playlist_embed(page)
 
     @command(brief="Remove song from your playlist", aliases=("rm", ))
-    async def remove(self, ctx, page:int=1):
+    async def remove(self, ctx, page: int = 1):
         await UserPlaylist(ctx).send_remove_playlist_embed(page)
 
     # now playing section =========================================================================
@@ -40,7 +40,7 @@ class Music(Cog):
         await VoiceClient.instances[ctx.guild].send_np_embed()
 
     @command(brief="Skip song at (<index>) or current song")
-    async def skip(self, ctx, index:int=0):
+    async def skip(self, ctx, index: int = 0):
         if not await self.is_playing(ctx): return
         await VoiceClient.instances[ctx.guild].skip(index)
 
@@ -61,12 +61,12 @@ class Music(Cog):
 
     # queue section ===============================================================================
     @command(brief="Show queue (<page>) (10 per page)", aliases=("q", "list"))
-    async def queue(self, ctx, page:int=1):
+    async def queue(self, ctx, page: int = 1):
         if not await self.is_playing(ctx): return
         await VoiceClient.instances[ctx.guild].send_queue_embed(page)
 
     @command(brief="Move song (<from>) to (<to>)", aliases=("mv", ))
-    async def move(self, ctx, fr:int=0, to:int=1):
+    async def move(self, ctx, fr: int = -1, to: int = 0):
         if not await self.is_playing(ctx): return
         await VoiceClient.instances[ctx.guild].move(fr, to)
 

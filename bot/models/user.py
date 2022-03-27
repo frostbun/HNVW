@@ -1,10 +1,9 @@
-from sqlite3 import connect
+from .database import Database
 
-from . import DATABASE
 TABLE = "user_table"
 
 # schema
-with connect(DATABASE) as conn:
+with Database() as conn:
     conn.execute(
         f"""CREATE TABLE IF NOT EXISTS {TABLE} (
             user_id TEXT PRIMARY KEY

@@ -12,7 +12,7 @@ class Embed(_Embed):
         thumbnail = _Embed.Empty,
         image = _Embed.Empty,
         color = Color.red(),
-    ):
+    ) -> None:
         super().__init__(
             title = title,
             description = desc,

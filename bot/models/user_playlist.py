@@ -1,15 +1,13 @@
-from sqlite3 import connect
-
-from ..models.song import Song
-from ..components import View, Button, Select, ButtonStyle, SelectOption
+from .database import Database
+from .song import Song
+from ..components import View, Button, Select, ButtonStyle, SelectOption, InteractionCallback
 from ..utils.formatter import format_duration
 from ..utils.extractor import extract_all_or_search
 
-from . import DATABASE
 TABLE = "user_playlist_table"
 
 # schema
-with connect(DATABASE) as conn:
+with Database() as conn:
     conn.execute(
         f"""CREATE TABLE IF NOT EXISTS {TABLE} (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,8 +29,8 @@ class UserPlaylist:
         self.user = ctx.author
 
     # database ====================================================================================
-    async def fetch_one(self, id):
-        with connect(DATABASE) as conn:
+    async def fetch_one(self, id: int) -> Song:
+        with Database() as conn:
             return Song(
                 *conn.cursor().execute(
                     f"""SELECT title, duration, thumbnail, url 
@@ -44,8 +42,8 @@ class UserPlaylist:
                 ).fetchone()
             )
 
-    async def fetch_size(self):
-        with connect(DATABASE) as conn:
+    async def fetch_size(self) -> int:
+        with Database() as conn:
             return conn.cursor().execute(
                 f"""SELECT COUNT(id) 
                     FROM {TABLE} 
@@ -54,8 +52,8 @@ class UserPlaylist:
                 (self.user.id, )
             ).fetchone()[0]
 
-    async def fetch(self, page):
-        with connect(DATABASE) as conn:
+    async def fetch(self, page: int = 1): # -> list[tuple[int, Song]]
+        with Database() as conn:
             return [
                 (data[0], Song(*data[1:])) for data in conn.cursor().execute(
                     f"""SELECT id, title, duration, thumbnail, url 
@@ -69,7 +67,7 @@ class UserPlaylist:
             ]
 
     async def insert(self):
-        with connect(DATABASE) as conn:
+        with Database() as conn:
             conn.execute(
                 f"""INSERT INTO {TABLE} (user_id, title, duration, thumbnail, url) 
                     VALUES (?, ?, ?, ?, ?) 
@@ -82,20 +80,18 @@ class UserPlaylist:
                     self.last_search.initial_url,
                 )
             )
-            conn.commit()
-        await self.ctx.send(embed=self.last_search.get_embed("Your song was saved"))
+        await self.ctx.send(embed = self.last_search.get_embed("Your song was saved"))
 
-    async def remove(self, id):
+    async def remove(self, id: int):
         song = await self.fetch_one(id)
-        with connect(DATABASE) as conn:
+        with Database() as conn:
             conn.execute(f"DELETE FROM {TABLE} WHERE id=?", (id, ))
-            conn.commit()
-        await self.ctx.send(embed=song.get_embed("Your song was removed"))
+        await self.ctx.send(embed = song.get_embed("Your song was removed"))
 
     # embed =======================================================================================
-    async def author_check(self, i):
-        if self.user != i.user:
-            await i.response.send_message(
+    async def author_check(self, interaction) -> bool:
+        if self.user != interaction.user:
+            await interaction.response.send_message(
                 content = "It's not yours",
                 ephemeral = True,
                 delete_after = 10,
@@ -103,8 +99,8 @@ class UserPlaylist:
             return False
         return True
 
-    def search(self, url):
-        self.last_search = extract_all_or_search(url)[1]
+    def search(self, url: str):
+        self.last_search = extract_all_or_search(url)[0]
         self.bot.loop.create_task(self.send_prompt_embed())
 
     async def send_prompt_embed(self):
@@ -118,14 +114,14 @@ class UserPlaylist:
                 Button(
                     label = "Save",
                     style = ButtonStyle.green,
-                    callback = [ self.insert ],
+                    callbacks = (InteractionCallback(self.insert), ),
                 ),
-                check = [ self.author_check ],
+                checks = (InteractionCallback(self.author_check), ),
             ),
-            delete_after = UserPlaylist.TIMEOUT,
+            delete_after = self.TIMEOUT,
         )
 
-    async def send_playlist_embed(self, page):
+    async def send_playlist_embed(self, page: int):
         size = await self.fetch_size()
         await self.ctx.send(
             "**Choose a song to play:**",
@@ -139,10 +135,14 @@ class UserPlaylist:
                             value = song.initial_url,
                         ) for id, song in await self.fetch(page)
                     ],
-                    callback = [ self.bot.get_command("play") ],
-                    default_param_name = "url",
-                    default_param_type = str,
-                    params = {"context": self.ctx},
+                    callbacks = (
+                        InteractionCallback(
+                            func = self.bot.get_command("play"),
+                            default_arg_name = "url",
+                            default_arg_type = str,
+                            context = self.ctx,
+                        ),
+                    ),
                 ),
                 Button(
                     label = "Cancel",
@@ -152,22 +152,30 @@ class UserPlaylist:
                     label = "Previous",
                     style = ButtonStyle.gray if page<=1 else ButtonStyle.green,
                     disabled = page<=1,
-                    callback = [ self.send_playlist_embed ],
-                    params = {"page": page-1},
+                    callbacks = (
+                        InteractionCallback(
+                            func = self.send_playlist_embed,
+                            page = page-1,
+                        ),
+                    ),
                 ),
                 Button(
                     label = "Next",
                     style = ButtonStyle.gray if page>=(size+9)//10 else ButtonStyle.green,
                     disabled = page>=(size+9)//10,
-                    callback = [ self.send_playlist_embed ],
-                    params = {"page": page+1},
+                    callbacks = (
+                        InteractionCallback(
+                            func = self.send_playlist_embed,
+                            page = page+1,
+                        ),
+                    ),
                 ),
-                check = [ self.author_check ],
+                checks = (InteractionCallback(self.author_check), ),
             ),
-            delete_after = UserPlaylist.TIMEOUT,
+            delete_after = self.TIMEOUT,
         )
 
-    async def send_remove_playlist_embed(self, page):
+    async def send_remove_playlist_embed(self, page: int):
         size = await self.fetch_size()
         await self.ctx.send(
             "**Choose a song to remove:**",
@@ -181,8 +189,13 @@ class UserPlaylist:
                             value = id,
                         ) for id, song in await self.fetch(page)
                     ],
-                    callback = [ self.remove ],
-                    default_param_name = "id",
+                    callbacks = (
+                        InteractionCallback(
+                            func = self.remove,
+                            default_arg_name = "id",
+                            default_arg_type = int,
+                        ),
+                    ),
                 ),
                 Button(
                     label = "Cancel",
@@ -192,17 +205,25 @@ class UserPlaylist:
                     label = "Previous",
                     style = ButtonStyle.gray if page<=1 else ButtonStyle.green,
                     disabled = page<=1,
-                    callback = [ self.send_remove_playlist_embed ],
-                    params = {"page": page-1},
+                    callbacks = (
+                        InteractionCallback(
+                            func = self.send_remove_playlist_embed,
+                            page = page-1,
+                        ),
+                    ),
                 ),
                 Button(
                     label = "Next",
                     style = ButtonStyle.gray if page>=(size+9)//10 else ButtonStyle.green,
                     disabled = page>=(size+9)//10,
-                    callback = [ self.send_remove_playlist_embed ],
-                    params = {"page": page+1},
+                    callbacks = (
+                        InteractionCallback(
+                            func = self.send_remove_playlist_embed,
+                            page = page+1,
+                        ),
+                    ),
                 ),
-                check = [ self.author_check ],
+                checks = (InteractionCallback(self.author_check), ),
             ),
-            delete_after = UserPlaylist.TIMEOUT,
+            delete_after = self.TIMEOUT,
         )

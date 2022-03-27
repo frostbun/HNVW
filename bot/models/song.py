@@ -1,16 +1,20 @@
+from dataclasses import dataclass
+
 from ..components import Embed
 from ..utils.formatter import format_duration
 
+@dataclass
 class Song:
+    title: str
+    duration: str
+    thumbnail: str
+    initial_url: str
+    play_url: str = None
 
-    def __init__(self, title, duration, thumbnail, initial_url, play_url=None):
-        self.title = title
-        self.duration = int(duration)
-        self.thumbnail = thumbnail
-        self.initial_url = initial_url
-        self.play_url = play_url
+    def __post_init__(self):
+        self.duration = int(self.duration)
 
-    def get_embed(self, title):
+    def get_embed(self, title: str) -> Embed:
         return Embed(
             title = title,
             desc = f"**[{self.title}]({self.initial_url})**",
@@ -19,7 +23,7 @@ class Song:
         )
 
     @classmethod
-    def from_ytdl(cls, song):
+    def from_ydl(cls, song: dict):
         return cls(
             title = song["title"],
             duration = song["duration"],
