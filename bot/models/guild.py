@@ -1,9 +1,9 @@
-from .database import Database
+from .database import connect_db
 
 TABLE = "guild_table"
 
 # schema
-with Database() as conn:
+with connect_db() as conn:
     conn.execute(
         f"""CREATE TABLE IF NOT EXISTS {TABLE} (
             guild_id TEXT PRIMARY KEY,

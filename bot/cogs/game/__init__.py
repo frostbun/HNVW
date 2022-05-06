@@ -1,7 +1,7 @@
 from discord import Member
 from discord.ext.commands import Cog, command
 
-from ..models import TicTacToe
+from .tictactoe import TicTacToe
 
 class Game(Cog):
 

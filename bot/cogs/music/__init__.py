@@ -2,7 +2,8 @@ from threading import Thread
 
 from discord.ext.commands import Cog, command
 
-from ..models import VoiceClient, UserPlaylist
+from .voice_client import VoiceClient
+from .user_playlist import UserPlaylist
 
 class Music(Cog):
 

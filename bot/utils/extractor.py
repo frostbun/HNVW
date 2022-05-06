@@ -1,7 +1,7 @@
 from youtube_dl import YoutubeDL
 
-from .validator import check_url
 from ..models import Song
+from .validator import check_url
 
 YDL_OPTIONS = {"format": "bestaudio"}
 YDL_NO_PLAYLIST_OPTIONS = {"format": "bestaudio", "noplaylist": True}

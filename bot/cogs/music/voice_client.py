@@ -3,10 +3,10 @@ from random import shuffle as rand
 
 from discord import FFmpegOpusAudio
 
-from ..components import Embed, View, Button, Select, ButtonStyle, SelectOption, InteractionCallback
-from ..utils.validator import check_url
-from ..utils.formatter import format_duration
-from ..utils.extractor import extract_one, extract_all_or_search, youtube_search
+from ...components import Embed, View, Button, Select, ButtonStyle, SelectOption, InteractionCallback
+from ...utils.validator import check_url
+from ...utils.formatter import format_duration
+from ...utils.extractor import extract_one, extract_all_or_search, youtube_search
 
 class VoiceClient:
 

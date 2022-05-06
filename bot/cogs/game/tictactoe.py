@@ -1,4 +1,4 @@
-from ..components import View, Button, ButtonStyle, InteractionCallback
+from ...components import View, Button, ButtonStyle, InteractionCallback
 
 class TicTacToe:
 

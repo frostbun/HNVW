@@ -1,13 +1,12 @@
-from .database import Database
-from .song import Song
-from ..components import View, Button, Select, ButtonStyle, SelectOption, InteractionCallback
-from ..utils.formatter import format_duration
-from ..utils.extractor import extract_all_or_search
+from ...models import connect_db, Song
+from ...components import View, Button, Select, ButtonStyle, SelectOption, InteractionCallback
+from ...utils.formatter import format_duration
+from ...utils.extractor import extract_all_or_search
 
 TABLE = "user_playlist_table"
 
 # schema
-with Database() as conn:
+with connect_db() as conn:
     conn.execute(
         f"""CREATE TABLE IF NOT EXISTS {TABLE} (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,7 +29,7 @@ class UserPlaylist:
 
     # database ====================================================================================
     async def fetch_one(self, id: int) -> Song:
-        with Database() as conn:
+        with connect_db() as conn:
             return Song(
                 *conn.cursor().execute(
                     f"""SELECT title, duration, thumbnail, url 
@@ -43,7 +42,7 @@ class UserPlaylist:
             )
 
     async def fetch_size(self) -> int:
-        with Database() as conn:
+        with connect_db() as conn:
             return conn.cursor().execute(
                 f"""SELECT COUNT(id) 
                     FROM {TABLE} 
@@ -53,7 +52,7 @@ class UserPlaylist:
             ).fetchone()[0]
 
     async def fetch(self, page: int = 1): # -> list[tuple[int, Song]]
-        with Database() as conn:
+        with connect_db() as conn:
             return [
                 (data[0], Song(*data[1:])) for data in conn.cursor().execute(
                     f"""SELECT id, title, duration, thumbnail, url 
@@ -67,7 +66,7 @@ class UserPlaylist:
             ]
 
     async def insert(self):
-        with Database() as conn:
+        with connect_db() as conn:
             conn.execute(
                 f"""INSERT INTO {TABLE} (user_id, title, duration, thumbnail, url) 
                     VALUES (?, ?, ?, ?, ?) 
@@ -84,7 +83,7 @@ class UserPlaylist:
 
     async def remove(self, id: int):
         song = await self.fetch_one(id)
-        with Database() as conn:
+        with connect_db() as conn:
             conn.execute(f"DELETE FROM {TABLE} WHERE id=?", (id, ))
         await self.ctx.send(embed = song.get_embed("Your song was removed"))
 
