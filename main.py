@@ -1,11 +1,9 @@
-import os
 from multiprocessing import Process
 
-from bot import bot
-from web import app
+from ditmewibu import run as ditmewibu
+from h3ck3r import run as h3ck3r
+from hnvm import run as hnvm
 
-from logging import getLogger
-getLogger("werkzeug").disabled = True
-
-Process(target = lambda: app.run("0.0.0.0")).start()
-bot.run(os.environ["TOKEN"])
+Process(target=ditmewibu).start()
+Process(target=h3ck3r).start()
+Process(target=hnvm).start()

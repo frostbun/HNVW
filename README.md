@@ -1,5 +1,20 @@
-# A Discord music bot
+# My Discord bots collection
 
-1. `$pip install -r requirements.txt`
-2. `$export TOKEN=<your-bot-token>`
-3. `$python main.py`
+
+## ditmewibu
+Crawl văn mẫu từ [ditmewibu.com](https://ditmewibu.com/) và chửi
+
+---
+
+## hnvm
+Bot nhạc
+
+---
+
+## h3ck3r
+Chưa viết ...
+
+---
+
+## Cách dùng
+Tự tìm hiểu đi e hỏi cl
