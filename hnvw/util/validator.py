@@ -1,8 +1,10 @@
-from requests import head
+from aiohttp import ClientSession
 
 
-def check_url(url: str) -> bool:
+async def check_url(url: str) -> bool:
     try:
-        return head(url).status_code < 400
+        async with ClientSession() as session:
+            async with session.head(url) as response:
+                return response.status < 400
     except Exception:
         return False

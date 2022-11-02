@@ -1,13 +1,11 @@
 from inspect import getfullargspec
 
+from discord import Interaction
+
 
 class InteractionCallback:
 
     def __init__(self, func, default_arg_name: str | None = None, default_arg_type = None, **kwargs):
-        # check callable
-        if not callable(func):
-            raise TypeError(f"Expected a callable object, got {func = }")
-
         # check args
         argspec = getfullargspec(func)
 
@@ -36,12 +34,11 @@ class InteractionCallback:
         self.default_arg_name = default_arg_name
         self.default_arg_type = default_arg_type
 
-    async def __call__(self, interaction, default_arg_value = None):
+    async def __call__(self, interaction: Interaction, default_arg_value = None):
         if self.default_arg_name in self.kwargs:
             self.kwargs[self.default_arg_name] = self.default_arg_type(default_arg_value)
         if "interaction" in self.kwargs:
             self.kwargs["interaction"] = interaction
         if "context" in self.kwargs:
             self.kwargs["context"].author = interaction.user
-        # TODO: check awaitable
         return await self.func(**self.kwargs)

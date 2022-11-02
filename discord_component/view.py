@@ -10,7 +10,7 @@ class View(_View):
         self,
         *items: Item,
         auto_delete: bool = True,
-        timeout: float| None = None,
+        timeout: float | None = None,
         checks: list[InteractionCallback] = [],
         on_timeouts: list[InteractionCallback] = [],
     ) -> None:

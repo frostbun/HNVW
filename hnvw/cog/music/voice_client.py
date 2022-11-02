@@ -1,10 +1,13 @@
 from asyncio import sleep
 from random import shuffle as rand
+from typing import Any
 
 from discord import FFmpegOpusAudio
-from discord_component import Button, ButtonStyle, Embed, InteractionCallback, Select, SelectOption, View
+from discord_component import (Button, ButtonStyle, Embed, InteractionCallback,
+                               Select, SelectOption, View)
 
-from ...util.extractor import extract_all_or_search, extract_one, youtube_search
+from ...util.extractor import (extract_all_or_search, extract_one,
+                               youtube_search)
 from ...util.formatter import format_duration
 from ...util.validator import check_url
 
@@ -14,23 +17,23 @@ class VoiceClient:
     TIMEOUT = 60
     PAGE_SIZE = 10
     FFMPEG_OPTIONS = {"bitrate": 128, "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5", "options": "-vn"}
-    
-    instances = {}
+
+    instances: dict[Any, "VoiceClient"] = {}
 
     def __init__(self, ctx):
         self.ctx = ctx
         self.bot = ctx.bot
         self.guild = ctx.guild
 
-    def enqueue(self, url: str):
+    async def enqueue(self, url: str):
         try:
-            song, songs = extract_all_or_search(url)
+            song, songs = await extract_all_or_search(url)
             self.queue += songs
-            self.bot.loop.create_task(self.ctx.send(embed = song.get_embed("Added to queue")))
+            await self.ctx.send(embed=song.get_embed("Added to queue"))
             if not self.voice_client.is_playing():
-                self.bot.loop.create_task(self.dequeue())
+                await self.dequeue()
         except Exception:
-            self.bot.loop.create_task(self.send_error_embed("Something went wrong while downloading your song"))
+            await self.send_error_embed("Something went wrong while downloading your song")
 
     async def dequeue(self):
         # no more music, no loop
@@ -42,7 +45,7 @@ class VoiceClient:
                 self.queue.append(self.playing)
             self.playing = self.queue.pop(0)
         # 403 forbidden => redownload
-        while not check_url(self.playing.play_url):
+        while not await check_url(self.playing.play_url):
             self.playing = extract_one(self.playing.initial_url)
         # 200 ok
         self.voice_client.play(
@@ -54,12 +57,12 @@ class VoiceClient:
         )
         await self.send_np_embed()
 
-    def search(self, name: str):
+    async def search(self, name: str):
         try:
-            self.last_search = youtube_search(name)
-            self.bot.loop.create_task(self.send_search_embed())
+            self.last_search = await youtube_search(name)
+            await self.send_search_embed()
         except Exception:
-            self.bot.loop.create_task(self.send_error_embed("Something went wrong while downloading your song"))
+            await self.send_error_embed("Something went wrong while downloading your song")
 
     async def select(self, index: int):
         song = self.last_search[index]

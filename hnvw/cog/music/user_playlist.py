@@ -53,7 +53,7 @@ class UserPlaylist:
                 (self.user.id, )
             ).fetchone()[0]
 
-    async def fetch(self, page: int = 1): # -> list[tuple[int, Song]]
+    async def fetch(self, page: int = 1) -> list[tuple[int, Song]]:
         with connect_db() as conn:
             return [
                 (data[0], Song(*data[1:])) for data in conn.cursor().execute(
@@ -100,9 +100,9 @@ class UserPlaylist:
             return False
         return True
 
-    def search(self, url: str):
-        self.last_search = extract_all_or_search(url)[0]
-        self.bot.loop.create_task(self.send_prompt_embed())
+    async def search(self, url: str):
+        self.last_search = await extract_all_or_search(url)[0]
+        await self.send_prompt_embed()
 
     async def send_prompt_embed(self):
         await self.ctx.send(

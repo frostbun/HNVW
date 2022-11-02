@@ -10,7 +10,7 @@ class Song:
     duration: str | int
     thumbnail: str
     initial_url: str
-    play_url: str = None
+    play_url: str | None = None
 
     def __post_init__(self):
         self.duration = int(self.duration)

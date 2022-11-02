@@ -1,7 +1,7 @@
-from discord import Interaction, SelectOption
+from discord import SelectOption
 from discord.ui import Select as _Select
 
-from .callback import InteractionCallback
+from .callback import Interaction, InteractionCallback
 
 
 class Select(_Select):

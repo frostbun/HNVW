@@ -1,4 +1,4 @@
-from discord import Color
+from discord import Colour as Color
 from discord import Embed as _Embed
 
 

@@ -4,7 +4,7 @@ from discord.ext.commands.errors import MissingPermissions
 from discord_component import Embed
 
 
-def create_bot(command_prefix):
+def create_bot(command_prefix: str) -> Bot:
     bot = Bot(
         command_prefix = when_mentioned_or(command_prefix),
         activity = Activity(

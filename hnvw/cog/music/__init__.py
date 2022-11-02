@@ -1,5 +1,3 @@
-from threading import Thread
-
 from discord.ext.commands import Cog, command
 
 from .user_playlist import UserPlaylist
@@ -16,18 +14,18 @@ class Music(Cog):
     async def play(self, ctx, *, url: str):
         if not await self.start_voice_client(ctx):
             return
-        Thread(target=lambda: VoiceClient.instances[ctx.guild].enqueue(url)).start()
+        await VoiceClient.instances[ctx.guild].enqueue(url)
 
     @command(brief="Search <song name> on youtube", aliases=("s", "find"))
     async def search(self, ctx, *, name: str):
         if not await self.start_voice_client(ctx):
             return
-        Thread(target=lambda: VoiceClient.instances[ctx.guild].search(name)).start()
+        await VoiceClient.instances[ctx.guild].search(name)
 
     # playlist section ============================================================================
     @command(brief="Save <url|song name> to your playlist", aliases=("sv", ))
     async def save(self, ctx, *, url: str):
-        Thread(target=lambda: UserPlaylist(ctx).search(url)).start()
+        await UserPlaylist(ctx).search(url)
 
     @command(brief="Play song from your playlist", aliases=("pl", ))
     async def playlist(self, ctx, page: int = 1):
@@ -94,11 +92,11 @@ class Music(Cog):
         await VoiceClient.instances[ctx.guild].stop()
 
     # checks section ==============================================================================
-    async def start_voice_client(self, ctx):
+    async def start_voice_client(self, ctx) -> bool:
         return await self.is_playing(ctx) or await VoiceClient(ctx).start()
 
-    async def is_playing(self, ctx):
+    async def is_playing(self, ctx) -> bool:
         return ctx.guild in VoiceClient.instances and await self.is_in_voice_channel(ctx)
 
-    async def is_in_voice_channel(self, ctx):
+    async def is_in_voice_channel(self, ctx) -> bool:
         return ctx.author.voice and ctx.author.voice.channel == VoiceClient.instances[ctx.guild].voice_client.channel

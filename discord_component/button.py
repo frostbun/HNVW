@@ -1,7 +1,7 @@
-from discord import ButtonStyle, Emoji, Interaction, PartialEmoji
+from discord import ButtonStyle, Emoji, PartialEmoji
 from discord.ui import Button as _Button
 
-from .callback import InteractionCallback
+from .callback import Interaction, InteractionCallback
 
 
 class Button(_Button):

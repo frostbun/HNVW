@@ -1,18 +1,16 @@
 __all__ = (
-    "ButtonStyle",
-    "Color",
-    "SelectOption",
     "Button",
+    "ButtonStyle",
     "InteractionCallback",
+    "Color",
     "Embed",
     "Select",
+    "SelectOption",
     "View",
 )
 
-from discord import ButtonStyle, Color, SelectOption
-
-from .button import Button
+from .button import Button, ButtonStyle
 from .callback import InteractionCallback
-from .embed import Embed
-from .select import Select
+from .embed import Color, Embed
+from .select import Select, SelectOption
 from .view import View
