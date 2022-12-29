@@ -3,6 +3,7 @@ from random import shuffle as rand
 from typing import Any
 
 from discord import FFmpegOpusAudio
+
 from discord_component import (Button, ButtonStyle, Embed, InteractionCallback,
                                Select, SelectOption, View)
 

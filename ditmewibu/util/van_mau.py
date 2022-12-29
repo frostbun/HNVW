@@ -1,27 +1,30 @@
-from random import choice
+import random
 
-from requests import get
+import requests
 
-response = get("https://ditmewibu.com/").text.split("\n")
+lines = [line.strip() for line in requests.get("https://ditmewibu.com/").text.split("\n")]
 parsing = False
 curr = ""
 van_mau = []
-for line in response:
-    line = line.strip()
-    if line.startswith("<") and parsing:
+
+for line in lines:
+    if line.startswith("<") and "<br>" not in line and parsing:
         parsing = False
-        van_mau.append(curr)
+        van_mau.append(curr.strip())
         curr = ""
     if parsing:
-        curr += line.strip("<br>") + "\n"
+        sep = "\n" if "<br>" in line else " "
+        curr += line.strip("<br>") + sep
     if line.startswith("<p"):
         parsing = True
-van_mau = van_mau[3:]
+
+van_mau = van_mau[1:-3]
 
 def get_van_mau():
-    return choice(van_mau)
+    return random.choice(van_mau)
 
 if __name__ == "__main__":
     print(len(van_mau))
     print(van_mau[0])
     print(van_mau[-1])
+    print(get_van_mau())

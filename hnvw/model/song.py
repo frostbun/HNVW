@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from discord_component import Embed
+
 from ..util.formatter import format_duration
 
 

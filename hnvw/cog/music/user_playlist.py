@@ -1,4 +1,5 @@
-from discord_component import Button, ButtonStyle, Embed, InteractionCallback, Select, SelectOption, View
+from discord_component import (Button, ButtonStyle, Embed, InteractionCallback,
+                               Select, SelectOption, View)
 
 from ...model import Song, connect_db
 from ...util.extractor import extract_all_or_search

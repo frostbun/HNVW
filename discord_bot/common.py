@@ -1,6 +1,7 @@
 from discord import Activity, ActivityType, DiscordException, Intents
 from discord.ext.commands import Bot, when_mentioned_or
 from discord.ext.commands.errors import MissingPermissions
+
 from discord_component import Embed
 
 

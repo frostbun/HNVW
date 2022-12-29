@@ -1,7 +1,8 @@
 from os import getenv
 
-from discord_bot.common import create_bot
 from dotenv import load_dotenv
+
+from discord_bot.common import create_bot
 
 from .cog import *
 
