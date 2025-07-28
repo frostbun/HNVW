@@ -2,29 +2,21 @@ import random
 
 import requests
 
-lines = [line.strip() for line in requests.get("https://ditmewibu.com/").text.split("\n")]
-parsing = False
-curr = ""
-van_mau = []
+van_mau = [line.strip() for line in requests.get("https://raw.githubusercontent.com/comgachienmam147/comgachienmam147.github.io/refs/heads/master/copypasta.txt").text.split("********************")]
 
-for line in lines:
-    if line.startswith("<") and "<br>" not in line and parsing:
-        parsing = False
-        van_mau.append(curr.strip())
-        curr = ""
-    if parsing:
-        sep = "\n" if "<br>" in line else " "
-        curr += line.strip("<br>") + sep
-    if line.startswith("<p"):
-        parsing = True
+for i in range(len(van_mau)):
+    van_mau[i] = "\n".join(van_mau[i].split("\n")[4:])
 
-van_mau = van_mau[1:-3]
+van_mau = van_mau[:-1]
 
 def get_van_mau():
     return random.choice(van_mau)
 
 if __name__ == "__main__":
     print(len(van_mau))
+    print("********************")
     print(van_mau[0])
+    print("********************")
     print(van_mau[-1])
+    print("********************")
     print(get_van_mau())
