@@ -62,7 +62,7 @@ class TicTacToe:
 
     async def send_board_embed(self):
         self.turn = (self.turn+1) % 2
-        await self.ctx.edit(
+        await self.ctx.send(
             f"{self.title}\n{self.users[self.turn].mention} turn!",
             view = View(
                 *[ Button(
@@ -83,7 +83,7 @@ class TicTacToe:
         )
 
     async def send_draw_embed(self):
-        await self.ctx.edit(
+        await self.ctx.send(
             f"{self.title}\nDraw!",
             view = View(
                 *[ Button(
@@ -96,7 +96,7 @@ class TicTacToe:
         )
 
     async def send_win_embed(self, comb):
-        await self.ctx.edit(
+        await self.ctx.send(
             f"{self.title}\n{self.users[self.turn].mention} win!",
             view = View(
                 *[ Button(
