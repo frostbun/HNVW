@@ -33,7 +33,7 @@ def create_bot(command_prefix: str) -> Bot:
                 delete_after=10,
             )
 
-    @bot.command(description="Pong")
+    @bot.slash_command(description="Pong")
     async def ping(ctx):
         await ctx.respond(
             embed=Embed(
@@ -43,7 +43,5 @@ def create_bot(command_prefix: str) -> Bot:
                 thumbnail=bot.user.avatar.url,
             )
         )
-
-    bot.register_commands()
 
     return bot
