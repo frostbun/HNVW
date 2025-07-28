@@ -13,22 +13,23 @@ class VanMau(Cog):
     @slash_command(description="Văn mẫu")
     async def ditmemay(self, ctx, member: Option(Member, "Thằng mày muốn chửi")):
         await ctx.respond(f"Địt mẹ {member.mention}")
-        van_mau = get_van_mau()
-        for i in range((len(van_mau)+1999)//2000):
-            await ctx.send(van_mau[i*2000:(i+1)*2000])
+        await self.send(ctx, member)
 
     @slash_command(description="Văn mẫu")
     async def ditcahonhamay(self, ctx, role: Option(Role, "Role mày muốn chửi")):
         await ctx.respond(f"Địt mẹ {role.mention}")
         for member in role.members:
-            van_mau = f"Địt mẹ {member.mention}. {get_van_mau()}"
-            for i in range((len(van_mau)+1999)//2000):
-                await ctx.send(van_mau[i*2000:(i+1)*2000])
+            await self.send(ctx, member)
 
     @slash_command(description="Văn mẫu")
     async def ditkongungnghi(self, ctx):
-        await ctx.respond(f"Địt mẹ @everyone", allowed_mentions=AllowedMentions(everyone=True))
+        await ctx.respond(
+            f"Địt mẹ @everyone", allowed_mentions=AllowedMentions(everyone=True)
+        )
         for member in ctx.guild.members:
-            van_mau = f"Địt mẹ {member.mention}. {get_van_mau()}"
-            for i in range((len(van_mau)+1999)//2000):
-                await ctx.send(van_mau[i*2000:(i+1)*2000])
+            await self.send(ctx, member)
+
+    async def send(self, ctx, member):
+        van_mau = f"Địt mẹ {member.mention}. {get_van_mau()}"
+        for i in range((len(van_mau) + 1999) // 2000):
+            await ctx.send(van_mau[i * 2000 : (i + 1) * 2000])
