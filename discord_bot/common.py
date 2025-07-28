@@ -7,13 +7,13 @@ from discord_component import Embed
 
 def create_bot(command_prefix: str) -> Bot:
     bot = Bot(
-        command_prefix = when_mentioned_or(command_prefix),
-        activity = Activity(
-            type = ActivityType.listening,
-            name = f"{command_prefix}help",
+        command_prefix=when_mentioned_or(command_prefix),
+        activity=Activity(
+            type=ActivityType.listening,
+            name=f"{command_prefix}help",
         ),
-        intents = Intents.all(),
-        strip_after_prefix = True,
+        intents=Intents.all(),
+        strip_after_prefix=True,
     )
 
     @bot.check
@@ -28,20 +28,22 @@ def create_bot(command_prefix: str) -> Bot:
     async def on_application_command_error(ctx, e: DiscordException):
         if isinstance(e, MissingPermissions):
             await ctx.response.send_message(
-                content = e,
-                ephemeral = True,
-                delete_after = 10,
+                content=e,
+                ephemeral=True,
+                delete_after=10,
             )
 
-    @bot.command(brief="Pong")
+    @bot.command(description="Pong")
     async def ping(ctx):
-        await ctx.send(
-            embed = Embed(
-                title = "Pong 🏓",
-                desc = f"I'm alive\n`{bot.latency*1000:.2f}ms`",
-                footer_text = bot.user,
-                thumbnail = bot.user.avatar.url
+        await ctx.respond(
+            embed=Embed(
+                title="Pong 🏓",
+                desc=f"I'm alive\n`{bot.latency*1000:.2f}ms`",
+                footer_text=bot.user,
+                thumbnail=bot.user.avatar.url,
             )
         )
+
+    bot.register_commands()
 
     return bot
