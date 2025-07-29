@@ -32,6 +32,8 @@ def create_bot(command_prefix: str) -> Bot:
                 ephemeral=True,
                 delete_after=10,
             )
+        else:
+            raise e
 
     @bot.slash_command(description="Pong")
     async def ping(ctx):
