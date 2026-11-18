@@ -5,12 +5,12 @@ import requests
 van_mau_list = [
     line.strip()
     for line in requests.get(
-        "https://raw.githubusercontent.com/comgachienmam147/comgachienmam147.github.io/refs/heads/master/copypasta.txt"
+        "https://ditmewibu.com/copypasta.txt"
     ).text.split("********************")
 ]
 
 van_mau_list = [
-    " ".join(line.strip() for line in van_mau.split("\r\n")[4:])
+    " ".join(line.strip() for line in van_mau.split("\n")[4:])
     for van_mau in van_mau_list
 ]
 
